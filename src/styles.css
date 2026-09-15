@@ -1,0 +1,418 @@
+/* Palette taken from engineering plotting paper: cool blue-white stock, grid
+   printed in a faded teal, the plotted curve in dark ink. The "miss" colour is
+   burnt orange rather than red, so it differs from the green in lightness as
+   well as hue and the two never collapse into each other. */
+
+:root {
+  color-scheme: light;
+
+  --paper: #f2f5f7;
+  --stock: #ffffff;
+  --grid: #cfdde2;
+  --axis: #5d7480;
+  --ink: #12303d;
+  --ink-soft: #4a6672;
+  --plot: #0f4c66;
+  --hit: #1c7a52;
+  --miss: #b4541b;
+
+  --font-text: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-math: 'IBM Plex Mono', ui-monospace, 'Cascadia Code', monospace;
+
+  --step: 0.5rem;
+  --radius: 3px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--plot);
+  outline-offset: 2px;
+}
+
+.page {
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: calc(var(--step) * 4) calc(var(--step) * 2) calc(var(--step) * 8);
+}
+
+.masthead {
+  margin-bottom: calc(var(--step) * 3);
+}
+
+/* The title is set in the monospace face at a tight tracking: the game is about
+   reading notation, so the notation face carries the name too. */
+.masthead__title {
+  margin: 0;
+  font-family: var(--font-math);
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+
+.masthead__sub {
+  margin: calc(var(--step) * 0.5) 0 0;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
+
+/* ---- The plot ---------------------------------------------------------- */
+
+/* Square by construction: the viewBox is square, so aspect-ratio keeps the
+   grid from shearing at any width. */
+.graph {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  background: var(--stock);
+  border: 1px solid var(--grid);
+  border-radius: var(--radius);
+}
+
+.graph__paper {
+  fill: var(--stock);
+}
+
+/* Hairlines that stay hairlines: vector-effect stops the stroke from scaling
+   up with the viewBox, which would otherwise thicken the grid on wide screens. */
+.graph__grid line {
+  stroke: var(--grid);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.graph__axes line {
+  stroke: var(--axis);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.graph__labels text {
+  fill: var(--ink-soft);
+  font-family: var(--font-math);
+  font-size: 9px;
+}
+
+.graph__curve {
+  fill: none;
+  stroke: var(--plot);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Guessed curves sit behind the answer, dashed, so they read as annotation
+   rather than as another mystery curve. */
+/* Guessed curves sit behind the answer so they read as annotation rather than
+   as another mystery curve.
+
+   Deliberately no `stroke` or `stroke-dasharray` here. Both are set per guess
+   as SVG attributes in Graph.tsx, and a CSS rule would silently win over them:
+   presentation attributes lose to stylesheets, so declaring a stroke on this
+   class would repaint every guess the same colour and the per-guess styling
+   would appear to do nothing. */
+.graph__ghost {
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  opacity: 0.85;
+  vector-effect: non-scaling-stroke;
+}
+
+/* ---- Guess entry ------------------------------------------------------- */
+
+.entry {
+  margin-top: calc(var(--step) * 3);
+}
+
+.entry__label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+  margin-bottom: calc(var(--step) * 0.75);
+}
+
+.entry__row {
+  display: flex;
+  gap: var(--step);
+}
+
+.entry__field {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: calc(var(--step) * 1.25) calc(var(--step) * 1.5);
+  font-family: var(--font-math);
+  font-size: 1.125rem;
+  color: var(--ink);
+  background: var(--stock);
+  border: 1px solid var(--grid);
+  border-radius: var(--radius);
+}
+
+.entry__field::placeholder {
+  color: #9db3bc;
+}
+
+.entry__field[aria-invalid='true'] {
+  border-color: var(--miss);
+}
+
+.entry__submit {
+  flex: 0 0 auto;
+  padding: 0 calc(var(--step) * 2.5);
+  font-family: var(--font-text);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--stock);
+  background: var(--plot);
+  border: 1px solid var(--plot);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.entry__submit:disabled {
+  background: var(--grid);
+  border-color: var(--grid);
+  color: var(--ink-soft);
+  cursor: not-allowed;
+}
+
+/* Reserves two lines so the layout does not jump as the hint swaps for an
+   error and back. */
+.entry__note {
+  min-height: 2.5em;
+  margin: var(--step) 0 0;
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+}
+
+.entry__note--problem {
+  color: var(--miss);
+}
+
+/* Sits inline in the hint text, so it needs baseline correction — an inline SVG
+   otherwise rides the text baseline and looks a pixel low. */
+.entry__swatch {
+  width: 28px;
+  height: 10px;
+  vertical-align: middle;
+  margin-right: calc(var(--step) * 0.75);
+}
+
+.entry__preview {
+  font-family: var(--font-math);
+  font-weight: 600;
+}
+
+/* ---- Guess history ----------------------------------------------------- */
+
+.guesses {
+  list-style: none;
+  margin: calc(var(--step) * 3) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--step);
+}
+
+.guess {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--step) * 2);
+  padding: var(--step) calc(var(--step) * 1.5);
+  background: var(--stock);
+  border: 1px solid var(--grid);
+  border-radius: var(--radius);
+}
+
+/* Swatch plus expression, kept together as one unit. min-width: 0 is what
+   allows the expression's ellipsis to work — without it a flex child refuses to
+   shrink below its content width and the text overflows the card instead. */
+.guess__label {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--step) * 1.25);
+  min-width: 0;
+}
+
+.guess__swatch {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 10px;
+}
+
+/* No `color` here: it is set inline per row from the palette, and a declaration
+   at this level would be the thing an inline style has to fight. */
+.guess__expr {
+  font-family: var(--font-math);
+  font-size: 1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.guess__cells {
+  display: flex;
+  gap: calc(var(--step) * 0.75);
+  flex: 0 0 auto;
+}
+
+/* Each cell states three things at once: which coefficient, what you guessed,
+   and which way to move. */
+.cell {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25em;
+  padding: 0.15em 0.5em;
+  border-radius: var(--radius);
+  font-family: var(--font-math);
+  font-size: 0.875rem;
+  border: 1px solid transparent;
+}
+
+.cell__name {
+  font-size: 0.75em;
+  opacity: 0.75;
+}
+
+.cell__value {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.cell__arrow {
+  font-size: 0.875em;
+}
+
+/* Colour is the fast signal; the glyph is the reliable one. Both are always
+   present, because red/green is precisely the pair that colour blindness
+   collapses. */
+.cell--correct {
+  background: #e4f2eb;
+  border-color: var(--hit);
+  color: var(--hit);
+}
+
+.cell--high,
+.cell--low {
+  background: #fbeade;
+  border-color: var(--miss);
+  color: var(--miss);
+}
+
+.tally {
+  margin: calc(var(--step) * 2) 0 0;
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+}
+
+/* ---- End of game ------------------------------------------------------- */
+
+.outcome {
+  margin-top: calc(var(--step) * 3);
+  padding: calc(var(--step) * 2.5);
+  background: var(--stock);
+  border: 1px solid var(--grid);
+  border-left: 3px solid var(--plot);
+  border-radius: var(--radius);
+}
+
+.outcome__verdict {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* The reveal is the one place the answer appears, so it gets the largest type
+   on the page after the title. */
+.outcome__answer {
+  margin: calc(var(--step) * 0.5) 0 calc(var(--step) * 2);
+  font-family: var(--font-math);
+  font-size: 1.5rem;
+  color: var(--plot);
+}
+
+.outcome__share {
+  padding: calc(var(--step) * 1.25) calc(var(--step) * 2.5);
+  font-family: var(--font-text);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--stock);
+  background: var(--plot);
+  border: 1px solid var(--plot);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.outcome__next {
+  margin: calc(var(--step) * 1.5) 0 0;
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+}
+
+/* ---- Rules ------------------------------------------------------------- */
+
+.rules {
+  margin-top: calc(var(--step) * 5);
+  padding-top: calc(var(--step) * 2);
+  border-top: 1px solid var(--grid);
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}
+
+.rules summary {
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.rules p {
+  max-width: 60ch;
+}
+
+/* On narrow screens the expression and its cells stop fitting side by side. */
+@media (max-width: 30rem) {
+  .guess {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--step);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
