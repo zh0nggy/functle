@@ -6,8 +6,9 @@
  * survives being read by someone who cannot distinguish red from green.
  */
 
-import type { CellState, Guess } from './types';
+import { KIND_LABEL } from './curve';
 import { MAX_GUESSES } from './puzzle';
+import type { CellState, CurveKind, Guess } from './types';
 
 const GLYPH: Record<CellState, string> = {
   correct: '🟩',
@@ -17,14 +18,22 @@ const GLYPH: Record<CellState, string> = {
 
 export function buildShareText(
   puzzleNumber: number,
+  kind: CurveKind,
   guesses: Guess[],
   won: boolean
 ): string {
   const score = won ? `${guesses.length}/${MAX_GUESSES}` : `X/${MAX_GUESSES}`;
-  const rows = guesses.map(
-    (g) => GLYPH[g.grade.a] + GLYPH[g.grade.b] + GLYPH[g.grade.c]
+
+  // The family is named because the rotation now has two, and a bare 4/6 does
+  // not say which kind of curve it took four guesses to pin down. It spoils
+  // nothing: everyone on this puzzle number already has the same curve.
+  const title = `Functle #${puzzleNumber} ${KIND_LABEL[kind]} ${score}`;
+
+  const rows = guesses.map((g) =>
+    g.grade.cells.map((cell) => GLYPH[cell.state]).join('')
   );
-  return [`Functle #${puzzleNumber} ${score}`, ...rows].join('\n');
+
+  return [title, ...rows].join('\n');
 }
 
 /**

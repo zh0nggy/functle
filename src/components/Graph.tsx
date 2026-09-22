@@ -9,9 +9,10 @@
  * intercept at a readable size.
  */
 
+import { evaluate } from '../lib/curve';
 import { guessStyle } from '../lib/palette';
-import { evaluate, VIEW_LIMIT } from '../lib/puzzle';
-import type { Coeffs } from '../lib/types';
+import { VIEW_LIMIT } from '../lib/puzzle';
+import type { Curve } from '../lib/types';
 
 /** SVG user units per graph unit. */
 const SCALE = 20;
@@ -26,37 +27,59 @@ const sx = (x: number) => x * SCALE;
 const sy = (y: number) => -y * SCALE;
 
 interface GraphProps {
-  curve: Coeffs;
+  curve: Curve;
   /** Guessed curves drawn faintly behind the answer, most recent last. */
-  ghosts?: Coeffs[];
+  ghosts?: Curve[];
 }
 
 /**
- * Samples the curve across the window and returns an SVG path.
+ * Samples the curve across the window and returns one SVG path per connected
+ * branch.
  *
  * Sampling every 0.05 units keeps a steep parabola from looking like a polygon
  * near its vertex. Points outside the window are kept in the path rather than
- * dropped, and a clipPath hides them: because the function is continuous and
- * single-valued in x, keeping them means the visible ends of the curve meet the
- * frame edge at the right place instead of stopping short.
+ * dropped, and a clipPath hides them: because each branch is continuous and
+ * single-valued in x, keeping them means the visible ends meet the frame edge at
+ * the right place instead of stopping short.
+ *
+ * The branch split is what makes rational functions plot correctly. A rational
+ * has no value at its vertical asymptote and changes sign across it, so joining
+ * the samples either side into one path draws a near-vertical line through the
+ * asymptote — the classic artifact of a naive plotter, and here it would read as
+ * part of the curve. Breaking wherever the function is undefined avoids it
+ * without special-casing the family.
  */
-function curvePath(coeffs: Coeffs): string {
+function curveBranches(curve: Curve): string[] {
   const STEP = 0.05;
-  const points: string[] = [];
+  const branches: string[] = [];
+  let current: string[] = [];
+
+  const finish = () => {
+    // A single point is not a line. Dropping it also avoids emitting the
+    // degenerate "Mx,y" path, which some renderers warn about.
+    if (current.length > 1) branches.push('M' + current.join('L'));
+    current = [];
+  };
 
   for (let x = -VIEW_LIMIT; x <= VIEW_LIMIT + STEP / 2; x += STEP) {
     const clampedX = Math.min(x, VIEW_LIMIT);
-    const y = evaluate(coeffs, clampedX);
+    const y = evaluate(curve, clampedX);
+
+    if (!Number.isFinite(y)) {
+      finish();
+      continue;
+    }
 
     // Values far outside the frame get pinned. Without this, a steep parabola
-    // produces coordinates in the tens of thousands and some browsers give up
-    // on the path entirely.
+    // or a point near an asymptote produces coordinates in the tens of
+    // thousands and some browsers give up on the path entirely.
     const pinnedY = Math.max(-VIEW_LIMIT * 3, Math.min(VIEW_LIMIT * 3, y));
 
-    points.push(`${sx(clampedX).toFixed(2)},${sy(pinnedY).toFixed(2)}`);
+    current.push(`${sx(clampedX).toFixed(2)},${sy(pinnedY).toFixed(2)}`);
   }
 
-  return 'M' + points.join('L');
+  finish();
+  return branches;
 }
 
 /**
@@ -66,16 +89,40 @@ function curvePath(coeffs: Coeffs): string {
  * player can read off the grid — no more precise, no less — so it makes the
  * puzzle solvable without sight while leaking nothing extra.
  */
-function latticePoints(coeffs: Coeffs): string {
+function latticePoints(curve: Curve): string {
   const hits: string[] = [];
   for (let x = -VIEW_LIMIT; x <= VIEW_LIMIT; x++) {
-    const y = evaluate(coeffs, x);
-    if (Number.isInteger(y) && Math.abs(y) <= VIEW_LIMIT) {
+    const y = evaluate(curve, x);
+    if (Number.isFinite(y) && Number.isInteger(y) && Math.abs(y) <= VIEW_LIMIT) {
       hits.push(`(${x}, ${y})`);
     }
   }
-  if (hits.length === 0) return 'The curve passes through no labelled grid points.';
+  if (hits.length === 0)
+    return 'The curve passes through no labelled grid points.';
   return `The curve passes through ${hits.join(', ')}.`;
+}
+
+/**
+ * Spoken description of the whole plot.
+ *
+ * For a rational the asymptotes have to be stated, because they are the most
+ * legible thing on the grid for a sighted player — the curve visibly climbs
+ * along them — and lattice points alone are far scarcer than for a parabola.
+ * Leaving them out would make the sighted and unsighted versions of the puzzle
+ * meaningfully different games.
+ */
+function describeCurve(curve: Curve): string {
+  const window = `plotted on a grid from minus ${VIEW_LIMIT} to ${VIEW_LIMIT}`;
+
+  if (curve.kind === 'rational') {
+    return (
+      `Today's mystery function, a rational curve in two branches, ${window}. ` +
+      `It has a vertical asymptote at x equals ${curve.h} and a horizontal ` +
+      `asymptote at y equals ${curve.k}. ${latticePoints(curve)}`
+    );
+  }
+
+  return `Today's mystery function, ${window}. ${latticePoints(curve)}`;
 }
 
 export default function Graph({ curve, ghosts = [] }: GraphProps) {
@@ -89,9 +136,7 @@ export default function Graph({ curve, ghosts = [] }: GraphProps) {
       className="graph"
       viewBox={`${-SPAN - PAD} ${-SPAN - PAD} ${SIZE + PAD * 2} ${SIZE + PAD * 2}`}
       role="img"
-      aria-label={`Today's mystery function, plotted on a grid from minus ${VIEW_LIMIT} to ${VIEW_LIMIT}. ${latticePoints(
-        curve
-      )}`}
+      aria-label={describeCurve(curve)}
     >
       <defs>
         <clipPath id="plot-area">
@@ -137,6 +182,24 @@ export default function Graph({ curve, ghosts = [] }: GraphProps) {
           ))}
       </g>
 
+      {/* The answer's asymptotes, drawn only for a rational.
+
+          These add legibility, not information: the curve already climbs along
+          both lines, so a sighted player can read h and k off the grid to the
+          nearest integer either way — and integers are all the answers are. What
+          the guides remove is the ambiguity of estimating by eye, the same
+          service the gridlines perform for lattice points.
+
+          Guesses deliberately get no asymptote lines. Six of them would put
+          twelve more lines on the grid and bury the two that describe the curve
+          being solved for. */}
+      {curve.kind === 'rational' && (
+        <g className="graph__asymptotes" aria-hidden="true">
+          <line x1={sx(curve.h)} y1={-SPAN} x2={sx(curve.h)} y2={SPAN} />
+          <line x1={-SPAN} y1={sy(curve.k)} x2={SPAN} y2={sy(curve.k)} />
+        </g>
+      )}
+
       <g clipPath="url(#plot-area)">
         {/* Each guess carries the colour and dash pattern of its history row,
             which is what lets you tell six overlapping curves apart.
@@ -148,17 +211,19 @@ export default function Graph({ curve, ghosts = [] }: GraphProps) {
             point. Later guesses still read as newer because they paint on top. */}
         {ghosts.map((ghost, i) => {
           const style = guessStyle(i);
-          return (
+          return curveBranches(ghost).map((d, branch) => (
             <path
-              key={i}
+              key={`${i}-${branch}`}
               className="graph__ghost"
-              d={curvePath(ghost)}
+              d={d}
               stroke={style.color}
               strokeDasharray={style.dash}
             />
-          );
+          ));
         })}
-        <path className="graph__curve" d={curvePath(curve)} />
+        {curveBranches(curve).map((d, branch) => (
+          <path key={branch} className="graph__curve" d={d} />
+        ))}
       </g>
     </svg>
   );

@@ -1,16 +1,20 @@
 /**
  * One submitted guess: a swatch tying it to its curve, the expression as typed,
- * then a verdict per coefficient.
+ * then a verdict per parameter.
  *
  * Three cells rather than one closeness score. A single "you are 60% away" is
  * Mastermind with one peg — the player cannot act on it. Splitting the verdict
- * by coefficient and adding a direction means each guess rules out a whole
- * half-range for each of a, b and c.
+ * by parameter and adding a direction means each guess rules out a whole
+ * half-range for each of the three.
+ *
+ * The cells are whatever the grade says they are. Quadratics grade a, b, c and
+ * rationals grade a, h, k, and this component does not need to know which it is
+ * rendering.
  */
 
 import { describeCell } from '../lib/grade';
 import { guessStyle } from '../lib/palette';
-import { formatFunction, speakFunction } from '../lib/parse';
+import { formatCurve, speakCurve } from '../lib/curve';
 import type { CellState, Guess } from '../lib/types';
 
 const ARROW: Record<CellState, string> = {
@@ -54,7 +58,7 @@ export default function GuessRow({
   /** Position in the guess list. Selects which colour this row owns. */
   index: number;
 }) {
-  const { coeffs, grade } = guess;
+  const { curve, grade } = guess;
   const style = guessStyle(index);
 
   return (
@@ -90,16 +94,21 @@ export default function GuessRow({
         <span
           className="guess__expr"
           style={{ color: style.color }}
-          aria-label={`${speakFunction(coeffs)}, drawn in ${style.name}`}
+          aria-label={`${speakCurve(curve)}, drawn in ${style.name}`}
         >
-          {formatFunction(coeffs)}
+          {formatCurve(curve)}
         </span>
       </div>
 
       <div className="guess__cells">
-        <Cell name="a" value={coeffs.a} state={grade.a} />
-        <Cell name="b" value={coeffs.b} state={grade.b} />
-        <Cell name="c" value={coeffs.c} state={grade.c} />
+        {grade.cells.map((cell) => (
+          <Cell
+            key={cell.name}
+            name={cell.name}
+            value={cell.value}
+            state={cell.state}
+          />
+        ))}
       </div>
     </li>
   );

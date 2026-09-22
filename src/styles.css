@@ -128,6 +128,18 @@ body {
   vector-effect: non-scaling-stroke;
 }
 
+/* The answer's asymptotes. Dashed and in the axis colour so they read as
+   construction lines belonging to the grid, not as part of the curve — if they
+   took the plot colour they would look like two more branches to solve for.
+   Drawn under the curve, since the curve is what matters where they cross. */
+.graph__asymptotes line {
+  stroke: var(--axis);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+  opacity: 0.75;
+  vector-effect: non-scaling-stroke;
+}
+
 /* Guessed curves sit behind the answer, dashed, so they read as annotation
    rather than as another mystery curve. */
 /* Guessed curves sit behind the answer so they read as annotation rather than

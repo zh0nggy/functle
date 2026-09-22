@@ -7,14 +7,19 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Graph from './components/Graph';
 import GuessInput from './components/GuessInput';
 import GuessRow from './components/GuessRow';
+import { formatCurve, KIND_LABEL, sameCurve } from './lib/curve';
 import { gradeGuess } from './lib/grade';
-import { formatFunction } from './lib/parse';
 import { MAX_GUESSES, puzzleFor } from './lib/puzzle';
 import { buildShareText, copyToClipboard } from './lib/share';
-import type { Coeffs, GameStatus, Guess } from './lib/types';
+import type { Curve, GameStatus, Guess } from './lib/types';
 
-/** Bumped if the saved shape ever changes, so old saves are discarded not crashed. */
-const SAVE_VERSION = 1;
+/**
+ * Bumped if the saved shape ever changes, so old saves are discarded not
+ * crashed. Version 2 added the curve family: a version 1 guess stored bare
+ * coefficients and a grade of three named fields, neither of which the current
+ * history row can render.
+ */
+const SAVE_VERSION = 2;
 
 interface SavedDay {
   version: number;
@@ -49,6 +54,7 @@ export default function App() {
   // One puzzle per mount. If someone leaves the tab open past midnight they
   // keep yesterday's puzzle until reload, which is the same as Wordle.
   const puzzle = useMemo(() => puzzleFor(), []);
+  const kind = puzzle.answer.kind;
 
   const [guesses, setGuesses] = useState<Guess[]>(() => loadDay(puzzle.dateKey));
   const [copied, setCopied] = useState(false);
@@ -70,26 +76,25 @@ export default function App() {
     if (status !== 'playing') endRef.current?.focus();
   }, [status]);
 
-  function handleGuess(raw: string, coeffs: Coeffs): string | null {
-    const duplicate = guesses.some(
-      (g) =>
-        g.coeffs.a === coeffs.a &&
-        g.coeffs.b === coeffs.b &&
-        g.coeffs.c === coeffs.c
-    );
-    if (duplicate) {
-      return `You already tried ${formatFunction(coeffs)}.`;
+  function handleGuess(raw: string, curve: Curve): string | null {
+    if (guesses.some((g) => sameCurve(g.curve, curve))) {
+      return `You already tried ${formatCurve(curve)}.`;
     }
 
     setGuesses((prev) => [
       ...prev,
-      { raw, coeffs, grade: gradeGuess(coeffs, puzzle.answer) },
+      { raw, curve, grade: gradeGuess(curve, puzzle.answer) },
     ]);
     return null;
   }
 
   async function handleShare() {
-    const text = buildShareText(puzzle.number, guesses, status === 'won');
+    const text = buildShareText(
+      puzzle.number,
+      kind,
+      guesses,
+      status === 'won'
+    );
     const ok = await copyToClipboard(text);
     setCopied(ok);
     if (!ok) window.prompt('Copy your result:', text);
@@ -101,16 +106,21 @@ export default function App() {
     <main className="page">
       <header className="masthead">
         <h1 className="masthead__title">Functle</h1>
+        {/* The family is named up front rather than left to be inferred from the
+            graph. It is not a hint — the shape is plain on sight — and knowing
+            it tells the player which notation the box expects. */}
         <p className="masthead__sub">
-          Puzzle {puzzle.number} · Read the curve, name the function
+          Puzzle {puzzle.number} · {KIND_LABEL[kind]} · Read the curve, name the
+          function
         </p>
       </header>
 
-      <Graph curve={puzzle.answer} ghosts={guesses.map((g) => g.coeffs)} />
+      <Graph curve={puzzle.answer} ghosts={guesses.map((g) => g.curve)} />
 
       {status === 'playing' ? (
         <GuessInput
           disabled={false}
+          kind={kind}
           nextIndex={guesses.length}
           onGuess={handleGuess}
         />
@@ -121,7 +131,7 @@ export default function App() {
               ? `Solved in ${guesses.length}.`
               : 'Out of guesses.'}
           </p>
-          <p className="outcome__answer">{formatFunction(puzzle.answer)}</p>
+          <p className="outcome__answer">{formatCurve(puzzle.answer)}</p>
           <button className="outcome__share" type="button" onClick={handleShare}>
             {copied ? 'Copied' : 'Copy result'}
           </button>
@@ -150,17 +160,29 @@ export default function App() {
       <details className="rules">
         <summary>How it works</summary>
         <p>
-          Every function is written a·x² + b·x + c, and a, b and c are whole
-          numbers from −10 to 10. When a is 0 you are looking at a straight line.
+          Some days the curve is a polynomial, written a·x² + b·x + c. When a is 0
+          you are looking at a straight line.
         </p>
         <p>
-          Each guess grades the three numbers separately. A green ✓ means that
-          number is right. An orange arrow points the way you need to move: ↑ to
-          go higher, ↓ to go lower.
+          Other days it is a rational function, written a/(x − h) + k. Those come
+          in two branches that climb along a pair of dashed guide lines: the
+          vertical one sits at x = h, the horizontal one at y = k. The heading
+          says which kind today is.
         </p>
         <p>
-          Order does not matter, so 5 − 3x + 2x² works as well as 2x² − 3x + 5.
-          You can write x² or x^2.
+          Every number is a whole number from −10 to 10, and each guess grades the
+          three of them separately. A green ✓ means that number is right. An
+          orange arrow points the way you need to move: ↑ to go higher, ↓ to go
+          lower.
+        </p>
+        <p>
+          For polynomials, order does not matter, so 5 − 3x + 2x² works as well as
+          2x² − 3x + 5, and you can write x² or x^2. For rational functions, write
+          the fraction: 3/(x-2)+1, or just 1/x.
+        </p>
+        <p>
+          Watch the sign on h. A vertical guide line at x = 2 means h is 2, and
+          the function is written 3/(x − 2) + 1.
         </p>
       </details>
     </main>

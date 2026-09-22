@@ -11,7 +11,8 @@
  * right tradeoff until there is a reason to run a server.
  */
 
-import type { Coeffs, Puzzle } from './types';
+import { evaluate } from './curve';
+import type { Curve, Puzzle } from './types';
 
 export const MAX_GUESSES = 6;
 
@@ -21,8 +22,26 @@ const EPOCH = '2026-09-01';
 /** Quadratics steeper than this show only a sliver of curve inside the grid. */
 const MAX_LEADING = 5;
 
-/** Share of puzzles that are lines rather than parabolas. */
+/** Share of quadratic puzzles that are lines rather than parabolas. */
 const LINEAR_SHARE = 0.35;
+
+/** Share of all puzzles that are rational rather than quadratic. */
+const RATIONAL_SHARE = 0.3;
+
+/**
+ * Largest numerator for a rational. Past this the branches hug the asymptotes so
+ * tightly at the readable end of the grid that a = 7 and a = 10 look the same.
+ */
+const MAX_NUMERATOR = 6;
+
+/**
+ * How far from the edge a rational's asymptotes must stay.
+ *
+ * An asymptote at x = 9 puts the whole right-hand branch in the last column of
+ * the grid, where there is nothing to read. Keeping both asymptotes within
+ * ±6 leaves each branch room to turn.
+ */
+const ASYMPTOTE_LIMIT = 6;
 
 /** Half-width of the visible grid, in both x and y. Must match Graph.tsx. */
 export const VIEW_LIMIT = 10;
@@ -56,6 +75,12 @@ function randInt(rng: () => number, min: number, max: number): number {
   return min + Math.floor(rng() * (max - min + 1));
 }
 
+/** Picks a non-zero magnitude and a sign, in one step. */
+function randSigned(rng: () => number, min: number, max: number): number {
+  const magnitude = randInt(rng, min, max);
+  return rng() < 0.5 ? -magnitude : magnitude;
+}
+
 /**
  * Local calendar date as YYYY-MM-DD.
  *
@@ -80,30 +105,36 @@ function daysBetween(fromKey: string, toKey: string): number {
 /**
  * Builds the answer for a given date.
  *
- * Two rules keep puzzles worth playing:
+ * Rules that keep puzzles worth playing:
  *  - a line must actually slope, or the graph is a featureless horizontal bar
  *  - a parabola's leading coefficient stays small, or the curve leaves the
- *    grid so fast that a=6 and a=10 look identical
+ *    grid so fast that a = 6 and a = 10 look identical
+ *  - a rational's numerator is never 0, which would flatten it to a line, and
+ *    its asymptotes stay away from the edges so both branches are readable
  */
-function generateAnswer(seed: number): Coeffs {
+function generateAnswer(seed: number): Curve {
   const rng = mulberry32(seed);
+
+  if (rng() < RATIONAL_SHARE) {
+    return {
+      kind: 'rational',
+      a: randSigned(rng, 1, MAX_NUMERATOR),
+      h: randInt(rng, -ASYMPTOTE_LIMIT, ASYMPTOTE_LIMIT),
+      k: randInt(rng, -ASYMPTOTE_LIMIT, ASYMPTOTE_LIMIT),
+    };
+  }
+
   const linear = rng() < LINEAR_SHARE;
 
   let a = 0;
-  if (!linear) {
-    const magnitude = randInt(rng, 1, MAX_LEADING);
-    a = rng() < 0.5 ? -magnitude : magnitude;
-  }
+  if (!linear) a = randSigned(rng, 1, MAX_LEADING);
 
   let b = randInt(rng, -10, 10);
-  if (linear && b === 0) {
-    const magnitude = randInt(rng, 1, 10);
-    b = rng() < 0.5 ? -magnitude : magnitude;
-  }
+  if (linear && b === 0) b = randSigned(rng, 1, 10);
 
   const c = randInt(rng, -10, 10);
 
-  return { a, b, c };
+  return { kind: 'quadratic', a, b, c };
 }
 
 /**
@@ -112,20 +143,40 @@ function generateAnswer(seed: number): Coeffs {
  * This is the fairness check. Without it the generator will happily produce
  * y = 5x^2 + 10, whose vertex sits exactly on the top edge and whose arms leave
  * the window before x reaches 1 — a single visible point, and no way to pin
- * down the curve from it. A player needs three points to determine a parabola
- * and two to determine a line, so we ask for a little more than the minimum.
+ * down the curve from it.
  */
-export function countVisiblePoints(coeffs: Coeffs): number {
+export function countVisiblePoints(curve: Curve): number {
   let visible = 0;
   for (let x = -VIEW_LIMIT; x <= VIEW_LIMIT; x++) {
-    if (Math.abs(evaluate(coeffs, x)) <= VIEW_LIMIT) visible++;
+    const y = evaluate(curve, x);
+    if (Number.isFinite(y) && Number.isInteger(y) && Math.abs(y) <= VIEW_LIMIT) {
+      visible++;
+    }
   }
   return visible;
 }
 
-export function isPlayable(coeffs: Coeffs): boolean {
-  const needed = coeffs.a === 0 ? 3 : 4;
-  return countVisiblePoints(coeffs) >= needed;
+/**
+ * Whether a curve can actually be solved from what the grid shows.
+ *
+ * The two families need different thresholds because they expose their
+ * parameters differently. A player pins a parabola down from lattice points
+ * alone, so it needs several. A rational hands over h and k directly through the
+ * positions of its asymptotes, which are as readable on the grid as a gridline —
+ * so it only needs enough points left over to fix the numerator. Demanding four
+ * lattice points from a rational would reject almost all of them: integer y only
+ * happens where (x - h) divides a, which caps the count at twice the number of
+ * divisors of a, and is exactly 2 whenever a is 1.
+ */
+export function isPlayable(curve: Curve): boolean {
+  if (curve.kind === 'rational') {
+    if (Math.abs(curve.h) > ASYMPTOTE_LIMIT) return false;
+    if (Math.abs(curve.k) > ASYMPTOTE_LIMIT) return false;
+    return countVisiblePoints(curve) >= 2;
+  }
+
+  const needed = curve.a === 0 ? 3 : 4;
+  return countVisiblePoints(curve) >= needed;
 }
 
 export function puzzleFor(when: Date = new Date()): Puzzle {
@@ -144,9 +195,4 @@ export function puzzleFor(when: Date = new Date()): Puzzle {
     dateKey: key,
     answer,
   };
-}
-
-/** Evaluates the polynomial. Used by the graph and nothing else. */
-export function evaluate({ a, b, c }: Coeffs, x: number): number {
-  return a * x * x + b * x + c;
 }

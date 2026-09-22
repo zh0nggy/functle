@@ -1,49 +1,109 @@
 import { describe, expect, it } from 'vitest';
 import { describeCell, gradeGuess } from './grade';
 import { buildShareText } from './share';
-import type { Coeffs, Guess } from './types';
+import type { CellState, Curve, Guess } from './types';
 
-const ANSWER: Coeffs = { a: 2, b: -3, c: 5 };
+const quadratic = (a: number, b: number, c: number): Curve => ({
+  kind: 'quadratic',
+  a,
+  b,
+  c,
+});
+
+const rational = (a: number, h: number, k: number): Curve => ({
+  kind: 'rational',
+  a,
+  h,
+  k,
+});
+
+const ANSWER = quadratic(2, -3, 5);
+
+/** The three verdicts in display order, for terse assertions. */
+function states(guess: Curve, answer: Curve): CellState[] {
+  return gradeGuess(guess, answer).cells.map((cell) => cell.state);
+}
 
 describe('gradeGuess', () => {
   it('marks an exact match as won', () => {
-    const grade = gradeGuess({ a: 2, b: -3, c: 5 }, ANSWER);
-    expect(grade).toEqual({ a: 'correct', b: 'correct', c: 'correct', won: true });
+    const grade = gradeGuess(quadratic(2, -3, 5), ANSWER);
+    expect(states(quadratic(2, -3, 5), ANSWER)).toEqual([
+      'correct',
+      'correct',
+      'correct',
+    ]);
+    expect(grade.won).toBe(true);
   });
 
-  it('grades each coefficient independently', () => {
+  it('grades each parameter independently', () => {
     // a too low, b too high, c correct — three separate facts from one guess.
-    const grade = gradeGuess({ a: 1, b: 4, c: 5 }, ANSWER);
-    expect(grade.a).toBe('low');
-    expect(grade.b).toBe('high');
-    expect(grade.c).toBe('correct');
+    const grade = gradeGuess(quadratic(1, 4, 5), ANSWER);
+    expect(grade.cells.map((c) => c.state)).toEqual(['low', 'high', 'correct']);
     expect(grade.won).toBe(false);
   });
 
   it('reports direction relative to the answer, not magnitude', () => {
     // -3 is closer to the answer in absolute terms than 10, but both are what
     // the player needs to know about: which way to move.
-    expect(gradeGuess({ a: 10, b: -3, c: 5 }, ANSWER).a).toBe('high');
-    expect(gradeGuess({ a: -10, b: -3, c: 5 }, ANSWER).a).toBe('low');
+    expect(states(quadratic(10, -3, 5), ANSWER)[0]).toBe('high');
+    expect(states(quadratic(-10, -3, 5), ANSWER)[0]).toBe('low');
   });
 
   it('handles negative answers without sign confusion', () => {
     // Guessing 0 against an answer of -3 is too high, not too low.
-    expect(gradeGuess({ a: 2, b: 0, c: 5 }, ANSWER).b).toBe('high');
-    expect(gradeGuess({ a: 2, b: -5, c: 5 }, ANSWER).b).toBe('low');
+    expect(states(quadratic(2, 0, 5), ANSWER)[1]).toBe('high');
+    expect(states(quadratic(2, -5, 5), ANSWER)[1]).toBe('low');
   });
 
   it('never says won unless all three are correct', () => {
-    expect(gradeGuess({ a: 2, b: -3, c: 4 }, ANSWER).won).toBe(false);
-    expect(gradeGuess({ a: 2, b: -2, c: 5 }, ANSWER).won).toBe(false);
-    expect(gradeGuess({ a: 3, b: -3, c: 5 }, ANSWER).won).toBe(false);
+    expect(gradeGuess(quadratic(2, -3, 4), ANSWER).won).toBe(false);
+    expect(gradeGuess(quadratic(2, -2, 5), ANSWER).won).toBe(false);
+    expect(gradeGuess(quadratic(3, -3, 5), ANSWER).won).toBe(false);
   });
 
   it('treats a line guessed as a line correctly', () => {
-    const lineAnswer: Coeffs = { a: 0, b: 4, c: -1 };
-    expect(gradeGuess({ a: 0, b: 4, c: -1 }, lineAnswer).won).toBe(true);
+    const line = quadratic(0, 4, -1);
+    expect(gradeGuess(quadratic(0, 4, -1), line).won).toBe(true);
     // Guessing a parabola when the answer is a line: a is too high.
-    expect(gradeGuess({ a: 1, b: 4, c: -1 }, lineAnswer).a).toBe('high');
+    expect(states(quadratic(1, 4, -1), line)[0]).toBe('high');
+  });
+
+  it('labels the cells with the family it is grading', () => {
+    expect(gradeGuess(quadratic(1, 1, 1), ANSWER).cells.map((c) => c.name)).toEqual(
+      ['a', 'b', 'c']
+    );
+    const answer = rational(3, 2, 1);
+    expect(gradeGuess(rational(1, 1, 1), answer).cells.map((c) => c.name)).toEqual(
+      ['a', 'h', 'k']
+    );
+  });
+
+  it('grades a rational slot by slot', () => {
+    const answer = rational(3, 2, 1);
+    expect(states(rational(3, 2, 1), answer)).toEqual([
+      'correct',
+      'correct',
+      'correct',
+    ]);
+    // h too low, k too high.
+    expect(states(rational(3, -1, 4), answer)).toEqual(['correct', 'low', 'high']);
+  });
+
+  it('grades h by its own sign, not the sign written on screen', () => {
+    // The answer is 3/(x − 2), so h = 2. A guess of 3/(x + 1) is h = -1, which
+    // is below 2 — even though the player typed a plus.
+    expect(states(rational(3, -1, 0), rational(3, 2, 0))[1]).toBe('low');
+  });
+
+  it('carries the guessed values through, so the row can show them', () => {
+    const cells = gradeGuess(rational(-4, 5, -6), rational(3, 2, 1)).cells;
+    expect(cells.map((c) => c.value)).toEqual([-4, 5, -6]);
+  });
+
+  it('refuses to grade across families', () => {
+    // Comparing a quadratic's b against a rational's h would produce a verdict
+    // that looks authoritative and means nothing.
+    expect(() => gradeGuess(quadratic(1, 2, 3), rational(1, 2, 3))).toThrow();
   });
 });
 
@@ -52,32 +112,43 @@ describe('describeCell', () => {
     expect(describeCell('a', 'correct')).toBe('a is correct');
     expect(describeCell('b', 'high')).toBe('b is too high');
     expect(describeCell('c', 'low')).toBe('c is too low');
+    expect(describeCell('h', 'high')).toBe('h is too high');
   });
 });
 
 describe('buildShareText', () => {
   /** Builds a guess with a known grade, ignoring the raw text. */
-  function guess(coeffs: Coeffs): Guess {
-    return { raw: '', coeffs, grade: gradeGuess(coeffs, ANSWER) };
+  function guess(curve: Curve, answer: Curve = ANSWER): Guess {
+    return { raw: '', curve, grade: gradeGuess(curve, answer) };
   }
 
   it('reports the score and one row per guess on a win', () => {
-    const guesses = [guess({ a: 1, b: 0, c: 0 }), guess(ANSWER)];
-    const text = buildShareText(7, guesses, true);
+    const guesses = [guess(quadratic(1, 0, 0)), guess(ANSWER)];
+    const text = buildShareText(7, 'quadratic', guesses, true);
     const lines = text.split('\n');
 
-    expect(lines[0]).toBe('Functle #7 2/6');
+    expect(lines[0]).toBe('Functle #7 Quadratic 2/6');
     expect(lines).toHaveLength(3);
     expect(lines[2]).toBe('🟩🟩🟩');
   });
 
   it('marks a loss with an X rather than a guess count', () => {
-    const guesses = [guess({ a: 1, b: 0, c: 0 })];
-    expect(buildShareText(7, guesses, false).split('\n')[0]).toBe('Functle #7 X/6');
+    const guesses = [guess(quadratic(1, 0, 0))];
+    expect(buildShareText(7, 'quadratic', guesses, false).split('\n')[0]).toBe(
+      'Functle #7 Quadratic X/6'
+    );
+  });
+
+  it('names the family, since the rotation has two', () => {
+    const answer = rational(3, 2, 1);
+    const guesses = [guess(rational(3, 2, 1), answer)];
+    expect(buildShareText(9, 'rational', guesses, true).split('\n')[0]).toBe(
+      'Functle #9 Rational 1/6'
+    );
   });
 
   it('leaks no numbers, only directions', () => {
-    const text = buildShareText(7, [guess({ a: 9, b: 8, c: 7 })], false);
+    const text = buildShareText(7, 'quadratic', [guess(quadratic(9, 8, 7))], false);
     // The header has digits; the grid rows must not, or the share spoils it.
     for (const row of text.split('\n').slice(1)) {
       expect(row).not.toMatch(/\d/);
