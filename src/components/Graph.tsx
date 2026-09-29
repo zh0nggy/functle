@@ -9,7 +9,7 @@
  * intercept at a readable size.
  */
 
-import { guessStyle } from '../lib/palette';
+import { GUESS_DASH, guessStyle } from '../lib/palette';
 import { curveBranches, describeCurve, SCALE } from '../lib/plot';
 import { VIEW_LIMIT } from '../lib/puzzle';
 import type { Curve } from '../lib/types';
@@ -109,8 +109,10 @@ export default function Graph({ curve, ghosts = [] }: GraphProps) {
       )}
 
       <g clipPath="url(#plot-area)">
-        {/* Each guess carries the colour and dash pattern of its history row,
-            which is what lets you tell six overlapping curves apart.
+        {/* Each guess carries the colour of its history row, which is what
+            lets you tell six overlapping curves apart. All guesses share one
+            dotted pattern; the row checkbox isolates a curve when colour is
+            not enough.
 
             No per-path opacity fade here. That was worth having when every
             guess was the same orange and recency was the only thing left to
@@ -126,7 +128,7 @@ export default function Graph({ curve, ghosts = [] }: GraphProps) {
               className="graph__ghost"
               d={d}
               stroke={style.color}
-              strokeDasharray={style.dash}
+              strokeDasharray={GUESS_DASH}
             />
           ));
         })}

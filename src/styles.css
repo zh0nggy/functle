@@ -135,6 +135,7 @@ body {
 .graph__asymptotes line {
   stroke: var(--axis);
   stroke-width: 1.5;
+  /* Same pattern as GUESS_DASH in palette.ts; change both together. */
   stroke-dasharray: 5 4;
   opacity: 0.75;
   vector-effect: non-scaling-stroke;

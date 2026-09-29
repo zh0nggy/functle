@@ -20,22 +20,28 @@
 
 export interface GuessStyle {
   color: string;
-  /** SVG stroke-dasharray. Carries the same identity without using colour. */
-  dash: string;
   /** Plain-language name, for the text description of each row. */
   name: string;
 }
 
+/**
+ * SVG stroke-dasharray shared by every guess. One dotted pattern keeps guesses
+ * reading as annotation against the solid answer; the colour and the row
+ * checkbox are what tell guesses apart. Matches the asymptote guides in
+ * styles.css (.graph__asymptotes), so change both together.
+ */
+export const GUESS_DASH = '5 4';
+
 export const GUESS_STYLES: GuessStyle[] = [
-  { color: '#a81c7c', dash: '6 3', name: 'magenta' },
-  { color: '#6a34c4', dash: '2 3', name: 'violet' },
-  { color: '#0d6e7d', dash: '10 3 2 3', name: 'teal' },
-  { color: '#8a6b00', dash: '1 3', name: 'gold' },
+  { color: '#a81c7c', name: 'magenta' },
+  { color: '#6a34c4', name: 'violet' },
+  { color: '#0d6e7d', name: 'teal' },
+  { color: '#8a6b00', name: 'gold' },
   // Red sits late on purpose: it is the nearest of these to the burnt orange
   // that means "too high / too low" in the result cells. Different context, so
   // not a real collision, but no reason to hand it to guess 1.
-  { color: '#c02a2a', dash: '13 4', name: 'red' },
-  { color: '#556070', dash: '10 3 2 3 2 3', name: 'slate' },
+  { color: '#c02a2a', name: 'red' },
+  { color: '#556070', name: 'slate' },
 ];
 
 /**

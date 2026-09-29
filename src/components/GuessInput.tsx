@@ -7,7 +7,7 @@
  */
 
 import { useState, type FormEvent } from 'react';
-import { guessStyle } from '../lib/palette';
+import { GUESS_DASH, guessStyle } from '../lib/palette';
 import { formatCurve, KIND_EXAMPLE } from '../lib/curve';
 import { parseCurve } from '../lib/parse';
 import type { Curve, CurveKind } from '../lib/types';
@@ -133,7 +133,7 @@ export default function GuessInput({
                 y2="5"
                 stroke={upcoming.color}
                 strokeWidth="2"
-                strokeDasharray={upcoming.dash}
+                strokeDasharray={GUESS_DASH}
                 strokeLinecap="round"
               />
             </svg>

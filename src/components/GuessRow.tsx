@@ -13,7 +13,7 @@
  */
 
 import { describeCell } from '../lib/grade';
-import { guessStyle } from '../lib/palette';
+import { GUESS_DASH, guessStyle } from '../lib/palette';
 import { formatCurve, speakCurve } from '../lib/curve';
 import type { CellState, Guess } from '../lib/types';
 
@@ -68,9 +68,9 @@ export default function GuessRow({
 
   return (
     <li className="guess">
-      {/* Reproduces the curve's own colour and dash pattern, so the row can be
-          matched to a line on the graph without relying on colour alone — which
-          matters here for the same reason the verdict cells carry arrows. */}
+      {/* Reproduces the curve's own colour and dotted line, so the row can be
+          matched to its line on the graph. The checkbox is the non-colour
+          fallback: toggling it shows which curve belongs to this row. */}
       {/* Swatch and expression stay grouped so that when the row stacks on a
           narrow screen the swatch does not end up alone on its own line. */}
       <div className="guess__label">
@@ -95,7 +95,7 @@ export default function GuessRow({
             y2="5"
             stroke={style.color}
             strokeWidth="2"
-            strokeDasharray={style.dash}
+            strokeDasharray={GUESS_DASH}
             strokeLinecap="round"
           />
         </svg>

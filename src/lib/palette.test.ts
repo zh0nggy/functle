@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GUESS_STYLES, guessStyle } from './palette';
+import { GUESS_DASH, GUESS_STYLES, guessStyle } from './palette';
 import { MAX_GUESSES } from './puzzle';
 
 describe('GUESS_STYLES', () => {
@@ -13,13 +13,6 @@ describe('GUESS_STYLES', () => {
   it('has no duplicate colours', () => {
     const colors = GUESS_STYLES.map((s) => s.color.toLowerCase());
     expect(new Set(colors).size).toBe(colors.length);
-  });
-
-  it('has no duplicate dash patterns', () => {
-    // Dash pattern is the non-colour channel. Two identical patterns collapse
-    // the fallback for anyone who cannot separate the hues.
-    const dashes = GUESS_STYLES.map((s) => s.dash);
-    expect(new Set(dashes).size).toBe(dashes.length);
   });
 
   it('has no duplicate names', () => {
@@ -40,13 +33,10 @@ describe('GUESS_STYLES', () => {
     expect(colors).not.toContain('#0f4c66');
   });
 
-  it('gives every dash pattern an even number of lengths', () => {
+  it('uses a dash pattern with an even number of lengths', () => {
     // An odd-length dasharray is legal SVG but repeats inverted on the second
     // pass, so the rendered pattern is not the one written here.
-    for (const style of GUESS_STYLES) {
-      const lengths = style.dash.trim().split(/\s+/);
-      expect(lengths.length % 2).toBe(0);
-    }
+    expect(GUESS_DASH.trim().split(/\s+/).length % 2).toBe(0);
   });
 });
 
