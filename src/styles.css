@@ -231,15 +231,6 @@ body {
   color: var(--miss);
 }
 
-/* Sits inline in the hint text, so it needs baseline correction — an inline SVG
-   otherwise rides the text baseline and looks a pixel low. */
-.entry__swatch {
-  width: 28px;
-  height: 10px;
-  vertical-align: middle;
-  margin-right: calc(var(--step) * 0.75);
-}
-
 .entry__preview {
   font-family: var(--font-math);
   font-weight: 600;
@@ -267,7 +258,7 @@ body {
   border-radius: var(--radius);
 }
 
-/* Swatch plus expression, kept together as one unit. min-width: 0 is what
+/* Checkbox plus expression, kept together as one unit. min-width: 0 is what
    allows the expression's ellipsis to work — without it a flex child refuses to
    shrink below its content width and the text overflows the card instead. */
 .guess__label {
@@ -275,12 +266,6 @@ body {
   align-items: center;
   gap: calc(var(--step) * 1.25);
   min-width: 0;
-}
-
-.guess__swatch {
-  flex: 0 0 auto;
-  width: 28px;
-  height: 10px;
 }
 
 /* No `color` here: it is set inline per row from the palette, and a declaration

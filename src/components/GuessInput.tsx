@@ -7,7 +7,7 @@
  */
 
 import { useState, type FormEvent } from 'react';
-import { GUESS_DASH, guessStyle } from '../lib/palette';
+import { guessStyle } from '../lib/palette';
 import { formatCurve, KIND_EXAMPLE } from '../lib/curve';
 import { parseCurve } from '../lib/parse';
 import type { Curve, CurveKind } from '../lib/types';
@@ -117,32 +117,15 @@ export default function GuessInput({
           problem
         ) : preview ? (
           <>
-            {/* Previews the colour this guess is about to take on the graph, so
-                the link between row and curve is established before the guess
-                is spent rather than after. */}
-            <svg
-              className="entry__swatch"
-              viewBox="0 0 28 10"
-              aria-hidden="true"
-              focusable="false"
-            >
-              <line
-                x1="1"
-                y1="5"
-                x2="27"
-                y2="5"
-                stroke={upcoming.color}
-                strokeWidth="2"
-                strokeDasharray={GUESS_DASH}
-                strokeLinecap="round"
-              />
-            </svg>
+            {/* The preview takes the colour this guess is about to have on the
+                graph, so the link between row and curve is established before
+                the guess is spent rather than after. */}
             Reads as{' '}
             <span className="entry__preview" style={{ color: upcoming.color }}>
               {preview}
             </span>
-            {/* The swatch is decorative to a screen reader, so the colour has to
-                be said somewhere for the graph reference to mean anything. */}
+            {/* The colour has to be said somewhere for a screen reader, or the
+                graph reference means nothing. */}
             <span className="sr-only">, will be drawn in {upcoming.name}</span>
           </>
         ) : kind === 'rational' ? (

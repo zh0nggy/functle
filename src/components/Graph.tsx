@@ -117,7 +117,7 @@ export default function Graph({ curve, ghosts = [] }: GraphProps) {
             No per-path opacity fade here. That was worth having when every
             guess was the same orange and recency was the only thing left to
             encode, but a faded magenta line no longer matches the solid
-            magenta swatch in its row, and matching row to curve is the entire
+            magenta text in its row, and matching row to curve is the entire
             point. Later guesses still read as newer because they paint on top. */}
         {ghosts.map((ghost, i) => {
           if (!ghost) return null;

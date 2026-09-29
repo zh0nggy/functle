@@ -1,6 +1,6 @@
 /**
- * One submitted guess: a swatch tying it to its curve, the expression as typed,
- * then a verdict per parameter.
+ * One submitted guess: a checkbox to show or hide its curve, the expression in
+ * that curve's colour, then a verdict per parameter.
  *
  * Three cells rather than one closeness score. A single "you are 60% away" is
  * Mastermind with one peg — the player cannot act on it. Splitting the verdict
@@ -13,7 +13,7 @@
  */
 
 import { describeCell } from '../lib/grade';
-import { GUESS_DASH, guessStyle } from '../lib/palette';
+import { guessStyle } from '../lib/palette';
 import { formatCurve, speakCurve } from '../lib/curve';
 import type { CellState, Guess } from '../lib/types';
 
@@ -68,11 +68,11 @@ export default function GuessRow({
 
   return (
     <li className="guess">
-      {/* Reproduces the curve's own colour and dotted line, so the row can be
-          matched to its line on the graph. The checkbox is the non-colour
-          fallback: toggling it shows which curve belongs to this row. */}
-      {/* Swatch and expression stay grouped so that when the row stacks on a
-          narrow screen the swatch does not end up alone on its own line. */}
+      {/* The expression and checkbox take the curve's colour, which is what
+          matches the row to its line on the graph. The checkbox is the
+          non-colour fallback: toggling it shows which curve belongs here.
+          Checkbox and expression stay grouped so that when the row stacks on
+          a narrow screen the checkbox does not end up alone on its own line. */}
       <div className="guess__label">
         <input
           type="checkbox"
@@ -82,28 +82,11 @@ export default function GuessRow({
           style={{ accentColor: style.color }}
           aria-label={`Show guess ${index + 1} on the graph`}
         />
-        <svg
-          className="guess__swatch"
-          viewBox="0 0 28 10"
-          aria-hidden="true"
-          focusable="false"
-        >
-          <line
-            x1="1"
-            y1="5"
-            x2="27"
-            y2="5"
-            stroke={style.color}
-            strokeWidth="2"
-            strokeDasharray={GUESS_DASH}
-            strokeLinecap="round"
-          />
-        </svg>
 
         {/* The visible text uses proper minus signs and a superscript; the label
             spells the same expression out, since "−x²" read literally is noise.
             The colour name goes in the label too — it is the only way the
-            row-to-curve link survives for someone not seeing the swatch. */}
+            row-to-curve link survives for someone not seeing the colour. */}
         <span
           className="guess__expr"
           style={{ color: style.color }}
