@@ -11,6 +11,9 @@ import { discontinuities, evaluate } from './curve';
 import { VIEW_LIMIT } from './puzzle';
 import type { Curve } from './types';
 
+/** SVG user units per graph unit. Lives here because the path maths needs it. */
+export const SCALE = 20;
+
 /**
  * Sampling interval, in graph units. Fine enough that a steep parabola does not
  * look like a polygon near its vertex.
@@ -46,7 +49,7 @@ function segment(curve: Curve, from: number, to: number): string | null {
     // or a sample taken very close to an asymptote, produces coordinates in the
     // tens of thousands and some browsers give up on the path entirely.
     const pinned = Math.max(-Y_PIN, Math.min(Y_PIN, y));
-    points.push(`${(x * 20).toFixed(2)},${(-pinned * 20).toFixed(2)}`);
+    points.push(`${(x * SCALE).toFixed(2)},${(-pinned * SCALE).toFixed(2)}`);
   };
 
   // Walk by index rather than accumulating `x += STEP`, so rounding error stays
