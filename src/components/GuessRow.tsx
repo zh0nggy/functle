@@ -53,10 +53,15 @@ function Cell({
 export default function GuessRow({
   guess,
   index,
+  shown,
+  onToggle,
 }: {
   guess: Guess;
   /** Position in the guess list. Selects which colour this row owns. */
   index: number;
+  /** Whether this guess's curve is drawn on the graph. */
+  shown: boolean;
+  onToggle: () => void;
 }) {
   const { curve, grade } = guess;
   const style = guessStyle(index);
@@ -69,6 +74,14 @@ export default function GuessRow({
       {/* Swatch and expression stay grouped so that when the row stacks on a
           narrow screen the swatch does not end up alone on its own line. */}
       <div className="guess__label">
+        <input
+          type="checkbox"
+          className="guess__toggle"
+          checked={shown}
+          onChange={onToggle}
+          style={{ accentColor: style.color }}
+          aria-label={`Show guess ${index + 1} on the graph`}
+        />
         <svg
           className="guess__swatch"
           viewBox="0 0 28 10"

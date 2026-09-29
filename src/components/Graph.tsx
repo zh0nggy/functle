@@ -26,8 +26,11 @@ const sy = (y: number) => -y * SCALE;
 
 interface GraphProps {
   curve: Curve;
-  /** Guessed curves drawn faintly behind the answer, most recent last. */
-  ghosts?: Curve[];
+  /**
+   * Guessed curves drawn behind the answer, most recent last. A hidden guess is
+   * null rather than removed, so every other guess keeps its index and colour.
+   */
+  ghosts?: (Curve | null)[];
 }
 
 export default function Graph({ curve, ghosts = [] }: GraphProps) {
@@ -115,6 +118,7 @@ export default function Graph({ curve, ghosts = [] }: GraphProps) {
             magenta swatch in its row, and matching row to curve is the entire
             point. Later guesses still read as newer because they paint on top. */}
         {ghosts.map((ghost, i) => {
+          if (!ghost) return null;
           const style = guessStyle(i);
           return curveBranches(ghost).map((d, branch) => (
             <path

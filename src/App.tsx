@@ -58,6 +58,8 @@ export default function App() {
 
   const [guesses, setGuesses] = useState<Guess[]>(() => loadDay(puzzle.dateKey));
   const [copied, setCopied] = useState(false);
+  // Indices of guesses hidden from the graph. View state only, so not saved.
+  const [hidden, setHidden] = useState<Set<number>>(() => new Set());
   const endRef = useRef<HTMLDivElement>(null);
 
   const status: GameStatus = guesses.some((g) => g.grade.won)
@@ -115,7 +117,10 @@ export default function App() {
         </p>
       </header>
 
-      <Graph curve={puzzle.answer} ghosts={guesses.map((g) => g.curve)} />
+      <Graph
+        curve={puzzle.answer}
+        ghosts={guesses.map((g, i) => (hidden.has(i) ? null : g.curve))}
+      />
 
       {status === 'playing' ? (
         <GuessInput
@@ -146,7 +151,19 @@ export default function App() {
                 ghosts in this same order, so both sides call guessStyle(i)
                 and land on the same colour. */}
             {guesses.map((guess, i) => (
-              <GuessRow key={i} guess={guess} index={i} />
+              <GuessRow
+                key={i}
+                guess={guess}
+                index={i}
+                shown={!hidden.has(i)}
+                onToggle={() =>
+                  setHidden((prev) => {
+                    const next = new Set(prev);
+                    if (!next.delete(i)) next.add(i);
+                    return next;
+                  })
+                }
+              />
             ))}
           </ol>
           {status === 'playing' && (
