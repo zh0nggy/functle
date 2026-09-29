@@ -1,32 +1,9 @@
-# React + TypeScript + Vite
+Some days the curve is a polynomial, written a·x² + b·x + c. When a is 0 you are looking at a straight line.
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Other days it is a rational function, written a/(x − h) + k. Those come in two branches that climb along a pair of dashed guide lines: the vertical one sits at x = h, the horizontal one at y = k. The heading says which kind today is.
 
-Currently, two official plugins are available:
+Every number is a whole number from −10 to 10, and each guess grades the three of them separately. A green ✓ means that number is right. An orange arrow points the way you need to move: ↑ to go higher, ↓ to go lower.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+For polynomials, order does not matter, so 5 − 3x + 2x² works as well as 2x² − 3x + 5, and you can write x² or x^2. For rational functions, write the fraction: 3/(x-2)+1, or just 1/x.
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
-```
-
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Watch the sign on h. A vertical guide line at x = 2 means h is 2, and the function is written 3/(x − 2) + 1.
