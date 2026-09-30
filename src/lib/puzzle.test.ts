@@ -44,6 +44,10 @@ describe('puzzleFor', () => {
     expect(a.answer).not.toEqual(b.answer);
   });
 
+  it('honours a pinned shape', () => {
+    expect(puzzleFor(new Date(2026, 8, 30)).answer.kind).toBe('cubic');
+  });
+
   it('numbers puzzles consecutively from the epoch', () => {
     expect(puzzleFor(new Date(2026, 8, 1)).number).toBe(1);
     expect(puzzleFor(new Date(2026, 8, 2)).number).toBe(2);
@@ -118,23 +122,29 @@ describe('generated answers are playable', () => {
     for (const answer of ANSWERS) expect(vertexInView(answer)).toBe(true);
   });
 
-  it('rotates through both families over a year', () => {
-    expect(ANSWERS.some((c) => c.kind === 'quadratic')).toBe(true);
-    expect(ANSWERS.some((c) => c.kind === 'rational')).toBe(true);
+  it('mixes the shapes roughly 10% lines, 30% each of the rest', () => {
+    // Loose bounds: a sanity check that retries do not skew the mix, not a
+    // distribution test.
+    const share = (test: (c: (typeof ANSWERS)[number]) => boolean) =>
+      ANSWERS.filter(test).length / ANSWERS.length;
+
+    const linear = share((c) => c.kind === 'quadratic' && c.a === 0);
+    const quadratic = share((c) => c.kind === 'quadratic' && c.a !== 0);
+    const cubic = share((c) => c.kind === 'cubic');
+    const rational = share((c) => c.kind === 'rational');
+
+    expect(linear).toBeGreaterThan(0.04);
+    expect(linear).toBeLessThan(0.18);
+    for (const s of [quadratic, cubic, rational]) {
+      expect(s).toBeGreaterThan(0.2);
+      expect(s).toBeLessThan(0.4);
+    }
   });
 
-  it('still includes both lines and parabolas among the quadratics', () => {
-    const quadratics = ANSWERS.filter((c) => c.kind === 'quadratic');
-    expect(quadratics.some((c) => c.kind === 'quadratic' && c.a === 0)).toBe(true);
-    expect(quadratics.some((c) => c.kind === 'quadratic' && c.a !== 0)).toBe(true);
-  });
-
-  it('keeps rationals a minority of the rotation', () => {
-    // Enough to be a regular sight, not so many that the game stops being about
-    // polynomials. Loose bounds: this is a sanity check, not a distribution test.
-    const share = ANSWERS.filter((c) => c.kind === 'rational').length / ANSWERS.length;
-    expect(share).toBeGreaterThan(0.1);
-    expect(share).toBeLessThan(0.5);
+  it('never gives a cubic a zero x^3 coefficient', () => {
+    for (const answer of ANSWERS) {
+      if (answer.kind === 'cubic') expect(answer.a).not.toBe(0);
+    }
   });
 });
 
@@ -187,6 +197,18 @@ describe('vertexInView', () => {
 
   it('accepts a vertex comfortably inside', () => {
     expect(vertexInView({ kind: 'quadratic', a: 1, b: 2, c: -3 })).toBe(true);
+  });
+
+  it("checks both of a cubic's turning points", () => {
+    // x^3 - 12x turns at x = ±2, where y = ∓16: both bumps are off the grid.
+    expect(vertexInView({ kind: 'cubic', a: 1, b: -12, c: 0 })).toBe(false);
+    // x^3 - 3x turns at (±1, ∓2), comfortably inside.
+    expect(vertexInView({ kind: 'cubic', a: 1, b: -3, c: 0 })).toBe(true);
+  });
+
+  it("checks a monotonic cubic's centre", () => {
+    expect(vertexInView({ kind: 'cubic', a: 1, b: 2, c: 10 })).toBe(false);
+    expect(vertexInView({ kind: 'cubic', a: 1, b: 2, c: 3 })).toBe(true);
   });
 
   it('has nothing to check on lines and rationals', () => {

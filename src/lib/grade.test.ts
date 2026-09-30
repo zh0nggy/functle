@@ -10,6 +10,13 @@ const quadratic = (a: number, b: number, c: number): Curve => ({
   c,
 });
 
+const cubic = (a: number, b: number, c: number): Curve => ({
+  kind: 'cubic',
+  a,
+  b,
+  c,
+});
+
 const rational = (a: number, h: number, k: number): Curve => ({
   kind: 'rational',
   a,
@@ -121,6 +128,34 @@ describe('gradeGuess', () => {
     expect(grade.cells.map((c) => c.state)).toEqual(['low', 'high', 'low']);
     expect(gradeGuess(quadratic(1, 1, -4), quadratic(0, 1, -4)).kindCorrect).toBe(true);
   });
+
+  it('grades a cubic against a cubic on every number', () => {
+    const grade = gradeGuess(cubic(1, 0, 1), cubic(1, -2, 3));
+    expect(grade.kindCorrect).toBe(true);
+    expect(grade.cells.map((c) => c.state)).toEqual(['correct', 'high', 'low']);
+    expect(gradeGuess(cubic(1, -2, 3), cubic(1, -2, 3)).won).toBe(true);
+  });
+
+  it('counts a cubic as a polynomial but leaves a ungraded against a quadratic', () => {
+    // a is x^3 in one and x^2 in the other, so comparing them means nothing;
+    // b and c are the same terms in both.
+    const grade = gradeGuess(quadratic(1, 1, -4), cubic(2, -3, -4));
+    expect(grade.kindCorrect).toBe(true);
+    expect(grade.cells.map((c) => c.state)).toEqual(['unknown', 'high', 'correct']);
+    expect(gradeGuess(cubic(2, -3, -4), quadratic(1, -3, -4)).cells[0].state).toBe(
+      'unknown'
+    );
+  });
+
+  it('never lets a quadratic win against a cubic with matching b and c', () => {
+    expect(gradeGuess(quadratic(0, -3, -4), cubic(2, -3, -4)).won).toBe(false);
+  });
+
+  it('calls a cubic the wrong type against a rational', () => {
+    const grade = gradeGuess(cubic(1, 2, 3), rational(1, 2, 3));
+    expect(grade.kindCorrect).toBe(false);
+    expect(grade.cells.every((c) => c.state === 'unknown')).toBe(true);
+  });
 });
 
 describe('describeCell', () => {
@@ -129,7 +164,7 @@ describe('describeCell', () => {
     expect(describeCell('b', 'high')).toBe('b is too high');
     expect(describeCell('c', 'low')).toBe('c is too low');
     expect(describeCell('h', 'high')).toBe('h is too high');
-    expect(describeCell('k', 'unknown')).toBe('k is not graded, wrong type');
+    expect(describeCell('k', 'unknown')).toBe('k is not graded');
   });
 });
 

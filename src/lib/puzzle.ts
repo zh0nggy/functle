@@ -22,11 +22,30 @@ const EPOCH = '2026-09-01';
 /** Quadratics steeper than this show only a sliver of curve inside the grid. */
 const MAX_LEADING = 5;
 
-/** Share of quadratic puzzles that are lines rather than parabolas. */
-const LINEAR_SHARE = 0.35;
+/** What the day's answer looks like. Finer than CurveKind: a line is its own. */
+type Shape = 'linear' | 'quadratic' | 'cubic' | 'rational';
 
-/** Share of all puzzles that are rational rather than quadratic. */
-const RATIONAL_SHARE = 0.3;
+/** Share of all puzzles of each shape. Must sum to 1. */
+const SHAPE_SHARE: [Shape, number][] = [
+  ['linear', 0.1],
+  ['quadratic', 0.3],
+  ['cubic', 0.3],
+  ['rational', 0.3],
+];
+
+/**
+ * Days pinned to a shape, for trying one out on the live puzzle. Only the
+ * shape is pinned; the numbers are still drawn from the date as usual.
+ */
+const PINNED_SHAPE: Record<string, Shape> = {
+  '2026-09-30': 'cubic',
+};
+
+/**
+ * Largest |a| for a cubic. x³ leaves the grid by x = 3 already; at a = 3 only
+ * the middle three columns are readable.
+ */
+const MAX_CUBIC_LEADING = 2;
 
 /**
  * Largest numerator for a rational. Past this the branches hug the asymptotes so
@@ -103,19 +122,40 @@ function daysBetween(fromKey: string, toKey: string): number {
 }
 
 /**
- * Builds the answer for a given date.
+ * Picks the day's shape, once, before any numbers are drawn.
+ *
+ * Separate from generateAnswer so rejection sampling retries only the numbers.
+ * Redrawing the shape on every retry skews the mix toward whichever shape
+ * fails the playability check least often: cubics leave the grid fast and
+ * came out at a third of their intended share that way.
+ */
+function pickShape(key: string): Shape {
+  const pinned = PINNED_SHAPE[key];
+  if (pinned) return pinned;
+
+  let draw = mulberry32(hashString(`${key}#kind`))();
+  for (const [shape, share] of SHAPE_SHARE) {
+    if (draw < share) return shape;
+    draw -= share;
+  }
+  // Only reachable through float rounding at the very top of the range.
+  return SHAPE_SHARE[SHAPE_SHARE.length - 1][0];
+}
+
+/**
+ * Builds the answer of the given family from a seed.
  *
  * Rules that keep puzzles worth playing:
  *  - a line must actually slope, or the graph is a featureless horizontal bar
- *  - a parabola's leading coefficient stays small, or the curve leaves the
- *    grid so fast that a = 6 and a = 10 look identical
+ *  - a parabola's or cubic's leading coefficient stays small, or the curve
+ *    leaves the grid so fast that a = 6 and a = 10 look identical
  *  - a rational's numerator is never 0, which would flatten it to a line, and
  *    its asymptotes stay away from the edges so both branches are readable
  */
-function generateAnswer(seed: number): Curve {
+function generateAnswer(shape: Shape, seed: number): Curve {
   const rng = mulberry32(seed);
 
-  if (rng() < RATIONAL_SHARE) {
+  if (shape === 'rational') {
     return {
       kind: 'rational',
       a: randSigned(rng, 1, MAX_NUMERATOR),
@@ -124,7 +164,16 @@ function generateAnswer(seed: number): Curve {
     };
   }
 
-  const linear = rng() < LINEAR_SHARE;
+  if (shape === 'cubic') {
+    return {
+      kind: 'cubic',
+      a: randSigned(rng, 1, MAX_CUBIC_LEADING),
+      b: randInt(rng, -10, 10),
+      c: randInt(rng, -10, 10),
+    };
+  }
+
+  const linear = shape === 'linear';
 
   let a = 0;
   if (!linear) a = randSigned(rng, 1, MAX_LEADING);
@@ -175,9 +224,11 @@ export function isPlayable(curve: Curve): boolean {
     return countVisiblePoints(curve) >= 2;
   }
 
-  if (curve.a !== 0 && !vertexInView(curve)) return false;
+  if (!vertexInView(curve)) return false;
 
-  const needed = curve.a === 0 ? 3 : 4;
+  // A line needs fewer points than a parabola or cubic. Four fixes a cubic
+  // here too: with no x² term there are only three unknowns.
+  const needed = curve.kind === 'quadratic' && curve.a === 0 ? 3 : 4;
   return countVisiblePoints(curve) >= needed;
 }
 
@@ -190,18 +241,38 @@ export function isPlayable(curve: Curve): boolean {
 const VERTEX_MARGIN = 1;
 
 /**
- * Whether a parabola's turning point is inside the grid.
+ * The points that define a polynomial's shape: a parabola's vertex, or a
+ * cubic's centre (0, c) plus its two turning points when it has them.
+ */
+function keyPoints(curve: Curve): number[] {
+  if (curve.kind === 'quadratic') {
+    return curve.a === 0 ? [] : [-curve.b / (2 * curve.a)];
+  }
+  if (curve.kind === 'cubic') {
+    // y' = 3ax² + b is zero at x = ±√(−b / 3a), which is real only when a and
+    // b have opposite signs. Otherwise the cubic just climbs (or falls) and
+    // its centre is the only feature.
+    const squared = -curve.b / (3 * curve.a);
+    if (squared <= 0) return [0];
+    const turn = Math.sqrt(squared);
+    return [-turn, 0, turn];
+  }
+  return [];
+}
+
+/**
+ * Whether a polynomial's turning points are inside the grid.
  *
- * The vertex is the single most readable feature of a parabola. When it falls
- * outside the frame the player sees two arms that could belong to any number of
- * curves, and the puzzle stops being about reading the graph.
+ * The vertex is the single most readable feature of a parabola, and a cubic's
+ * bumps are what tell it apart from one. When they fall outside the frame the
+ * player sees arms that could belong to any number of curves, and the puzzle
+ * stops being about reading the graph.
  */
 export function vertexInView(curve: Curve): boolean {
-  if (curve.kind !== 'quadratic' || curve.a === 0) return true;
-  const x = -curve.b / (2 * curve.a);
-  const y = evaluate(curve, x);
   const limit = VIEW_LIMIT - VERTEX_MARGIN;
-  return Math.abs(x) <= limit && Math.abs(y) <= limit;
+  return keyPoints(curve).every(
+    (x) => Math.abs(x) <= limit && Math.abs(evaluate(curve, x)) <= limit
+  );
 }
 
 export function puzzleFor(when: Date = new Date()): Puzzle {
@@ -210,9 +281,10 @@ export function puzzleFor(when: Date = new Date()): Puzzle {
 
   // Rejection sampling: perturb the seed until the curve is legible. Still
   // fully deterministic, since the attempt counter is part of the seed.
-  let answer = generateAnswer(baseSeed);
+  const shape = pickShape(key);
+  let answer = generateAnswer(shape, baseSeed);
   for (let attempt = 1; attempt < 64 && !isPlayable(answer); attempt++) {
-    answer = generateAnswer(hashString(`${key}#${attempt}`));
+    answer = generateAnswer(shape, hashString(`${key}#${attempt}`));
   }
 
   return {

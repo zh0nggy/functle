@@ -11,19 +11,29 @@
 import type { Curve, CurveKind } from './types';
 
 /**
- * How the type box names each family.
+ * The type the player is graded on, which is coarser than the stored kind.
  *
- * "Polynomial", not "Quadratic": the family includes lines (a = 0), and a box
- * saying "Quadratic" beside y = x − 4 reads as a bug.
+ * Lines, parabolas and cubics are all "Polynomial": a box saying "Quadratic"
+ * beside y = x − 4 reads as a bug, and telling the player which power the
+ * answer tops out at would give away the most interesting part of the graph.
  */
+export type Family = 'polynomial' | 'rational';
+
+export function familyOf(curve: Curve): Family {
+  return curve.kind === 'rational' ? 'rational' : 'polynomial';
+}
+
+/** How the type box names each family. */
 export const KIND_LABEL: Record<CurveKind, string> = {
   quadratic: 'Polynomial',
+  cubic: 'Polynomial',
   rational: 'Rational',
 };
 
 /** The shape the player is expected to type, shown as placeholder and example. */
 export const KIND_EXAMPLE: Record<CurveKind, string> = {
   quadratic: '2x^2 - 3x + 5',
+  cubic: 'x^3 - 2x + 1',
   rational: '3/(x-2)+1',
 };
 
@@ -37,6 +47,9 @@ export const KIND_EXAMPLE: Record<CurveKind, string> = {
 export function evaluate(curve: Curve, x: number): number {
   if (curve.kind === 'quadratic') {
     return curve.a * x * x + curve.b * x + curve.c;
+  }
+  if (curve.kind === 'cubic') {
+    return curve.a * x * x * x + curve.b * x + curve.c;
   }
   const denominator = x - curve.h;
   if (denominator === 0) return NaN;
@@ -59,12 +72,12 @@ export function discontinuities(curve: Curve): number[] {
 /**
  * The three parameters in display order, as name/value pairs.
  *
- * This is the seam that lets one grading function and one history row serve both
- * families: the grader compares slot to slot without knowing whether it is
- * looking at `b` or `h`.
+ * This is the seam that lets one grading function and one history row serve
+ * every family: the grader compares slot to slot without knowing whether it is
+ * looking at `b` or `h`. Quadratics and cubics share the names a, b, c.
  */
 export function slots(curve: Curve): { name: string; value: number }[] {
-  if (curve.kind === 'quadratic') {
+  if (curve.kind !== 'rational') {
     return [
       { name: 'a', value: curve.a },
       { name: 'b', value: curve.b },
@@ -90,7 +103,8 @@ function signAndMagnitude(value: number): { sign: string; magnitude: number } {
   return { sign: value < 0 ? '−' : '+', magnitude: Math.abs(value) };
 }
 
-function formatQuadratic(a: number, b: number, c: number): string {
+/** `lead` is the leading term's suffix: x² for a quadratic, x³ for a cubic. */
+function formatPolynomial(a: number, b: number, c: number, lead: string): string {
   const parts: string[] = [];
 
   const push = (value: number, suffix: string) => {
@@ -103,7 +117,7 @@ function formatQuadratic(a: number, b: number, c: number): string {
     );
   };
 
-  push(a, 'x²');
+  push(a, lead);
   push(b, 'x');
   push(c, '');
 
@@ -136,9 +150,13 @@ function formatRational(a: number, h: number, k: number): string {
 
 /** Renders a curve the way the game wants to display it back. */
 export function formatCurve(curve: Curve): string {
-  return curve.kind === 'quadratic'
-    ? formatQuadratic(curve.a, curve.b, curve.c)
-    : formatRational(curve.a, curve.h, curve.k);
+  if (curve.kind === 'quadratic') {
+    return formatPolynomial(curve.a, curve.b, curve.c, 'x²');
+  }
+  if (curve.kind === 'cubic') {
+    return formatPolynomial(curve.a, curve.b, curve.c, 'x³');
+  }
+  return formatRational(curve.a, curve.h, curve.k);
 }
 
 /**
@@ -155,10 +173,11 @@ export function latexCurve(curve: Curve, { bare = false } = {}): string {
 
   // Same text as formatCurve, which has already settled the sign and implied-1
   // rules; only the notation differs.
-  if (curve.kind === 'quadratic') {
+  if (curve.kind !== 'rational') {
     const body = formatCurve(curve)
       .replace(/^y = /, '')
       .replace(/x²/g, 'x^{2}')
+      .replace(/x³/g, 'x^{3}')
       .replace(/−/g, '-');
     return lead + body;
   }
@@ -179,7 +198,7 @@ export function latexCurve(curve: Curve, { bare = false } = {}): string {
  * the slash and parens are either skipped or spelled out as punctuation.
  */
 export function speakCurve(curve: Curve): string {
-  if (curve.kind === 'quadratic') {
+  if (curve.kind !== 'rational') {
     // The \s* matters: interior operators are already spaced ("2x² − 3x"), so
     // replacing the bare sign would leave "minus  3x" with a doubled space,
     // while a leading sign has no space to absorb ("−x²").
@@ -187,7 +206,8 @@ export function speakCurve(curve: Curve): string {
       .replace('y = ', '')
       .replace(/−\s*/g, 'minus ')
       .replace(/\+\s*/g, 'plus ')
-      .replace(/x²/g, 'x squared');
+      .replace(/x²/g, 'x squared')
+      .replace(/x³/g, 'x cubed');
   }
 
   const { a, h, k } = curve;

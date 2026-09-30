@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  discontinuities,
   evaluate,
   formatCurve,
   latexCurve,
@@ -11,9 +12,35 @@ import {
 import type { Curve } from './types';
 
 describe('KIND_LABEL', () => {
-  it('calls lines and parabolas polynomials, not quadratics', () => {
+  it('calls lines, parabolas and cubics polynomials', () => {
     expect(KIND_LABEL.quadratic).toBe('Polynomial');
+    expect(KIND_LABEL.cubic).toBe('Polynomial');
     expect(KIND_LABEL.rational).toBe('Rational');
+  });
+});
+
+describe('cubics', () => {
+  const cubic = (a: number, b: number, c: number): Curve => ({ kind: 'cubic', a, b, c });
+
+  it('evaluates a·x³ + b·x + c', () => {
+    expect(evaluate(cubic(1, -2, 1), 2)).toBe(5);
+    expect(evaluate(cubic(-2, 0, 3), -1)).toBe(5);
+  });
+
+  it('formats, typesets and speaks with x³', () => {
+    expect(formatCurve(cubic(1, -2, 1))).toBe('y = x³ − 2x + 1');
+    expect(formatCurve(cubic(-2, 0, 0))).toBe('y = −2x³');
+    expect(latexCurve(cubic(1, -2, 1), { bare: true })).toBe('x^{3} - 2x + 1');
+    expect(speakCurve(cubic(1, -2, 1))).toBe('x cubed minus 2x plus 1');
+  });
+
+  it('has slots a, b, c and no discontinuities', () => {
+    expect(slots(cubic(1, -2, 1)).map((s) => s.name)).toEqual(['a', 'b', 'c']);
+    expect(discontinuities(cubic(1, -2, 1))).toEqual([]);
+  });
+
+  it('is never the same curve as a quadratic with the same numbers', () => {
+    expect(sameCurve(cubic(1, 2, 3), { kind: 'quadratic', a: 1, b: 2, c: 3 })).toBe(false);
   });
 });
 

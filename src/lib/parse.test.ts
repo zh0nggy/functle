@@ -77,8 +77,32 @@ describe('parseCurve on quadratics', () => {
     });
   });
 
-  it('rejects powers above two', () => {
-    expect(errorFor('x^3')).toMatch(/only lines and parabolas/);
+  it('rejects powers above three', () => {
+    expect(errorFor('x^4')).toMatch(/x\^3 is the most/);
+  });
+});
+
+describe('parseCurve on depressed cubics', () => {
+  it('reads a cubic with its terms in any order', () => {
+    const expected = { kind: 'cubic', a: 1, b: -2, c: 1 };
+    expect(curve('x^3-2x+1')).toEqual(expected);
+    expect(curve('1 - 2x + x³')).toEqual(expected);
+  });
+
+  it('reads a bare cubic', () => {
+    expect(curve('-2x^3')).toEqual({ kind: 'cubic', a: -2, b: 0, c: 0 });
+  });
+
+  it('rejects an x^2 term alongside x^3', () => {
+    expect(errorFor('x^3+x^2+1')).toMatch(/no x\^2 term/);
+  });
+
+  it('reads an x^3 that cancels out as a quadratic', () => {
+    expect(curve('x^3 - x^3 + x^2')).toEqual({ kind: 'quadratic', a: 1, b: 0, c: 0 });
+  });
+
+  it('range-checks the x^3 coefficient', () => {
+    expect(errorFor('11x^3')).toMatch(/between -10 and 10/);
   });
 
   it('rejects a variable that is not x', () => {

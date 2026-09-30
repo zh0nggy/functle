@@ -3,8 +3,11 @@
  *
  * Two shapes are understood, and a slash is what tells them apart:
  *
- *   "2x^2-3x+5", "-3x + 2x² + 5", "y = 5 - 3x + 2x^2"  ->  quadratic
- *   "3/(x-2)+1", "1/x", "1 - 2/(x+3)"                   ->  rational
+ *   "2x^2-3x+5", "-3x + 2x² + 5", "x^3 - 2x + 1"  ->  polynomial
+ *   "3/(x-2)+1", "1/x", "1 - 2/(x+3)"              ->  rational
+ *
+ * A polynomial with an x^3 term is a depressed cubic and must not also have an
+ * x^2 term; otherwise it is a quadratic (or a line).
  *
  * In both, terms can arrive in any order and repeated constants get summed.
  *
@@ -120,8 +123,8 @@ function splitTerms(s: string): string[] | null {
 const TERM = /^([+-])?(\d+(?:\.\d+)?)?(x(?:\^([+-]?\d+))?)?/;
 
 function parseQuadratic(s: string): ParseResult {
-  // Coefficient per power of x: index 0 is the constant, 1 is x, 2 is x^2.
-  const byPower = [0, 0, 0];
+  // Coefficient per power of x: index 0 is the constant, 1 is x, up to x^3.
+  const byPower = [0, 0, 0, 0];
   let sawAnyTerm = false;
   let i = 0;
 
@@ -188,10 +191,10 @@ function parseQuadratic(s: string): ParseResult {
           error: 'Write a negative power as a fraction instead, like 3/(x-2)+1.',
         };
       }
-      if (power > 2) {
+      if (power > 3) {
         return {
           ok: false,
-          error: `x^${power} is too high a power — only lines and parabolas here.`,
+          error: `x^${power} is too high a power — x^3 is the most here.`,
         };
       }
     }
@@ -201,12 +204,18 @@ function parseQuadratic(s: string): ParseResult {
     i += full.length;
   }
 
-  const curve: Curve = {
-    kind: 'quadratic',
-    a: byPower[2],
-    b: byPower[1],
-    c: byPower[0],
-  };
+  // Checked after summing, so "x^3 + x^2 - x^2" still reads as a cubic.
+  if (byPower[3] !== 0 && byPower[2] !== 0) {
+    return {
+      ok: false,
+      error: 'A cubic here has no x^2 term, like x^3-2x+1.',
+    };
+  }
+
+  const curve: Curve =
+    byPower[3] !== 0
+      ? { kind: 'cubic', a: byPower[3], b: byPower[1], c: byPower[0] }
+      : { kind: 'quadratic', a: byPower[2], b: byPower[1], c: byPower[0] };
 
   // Range check last, so structural problems get reported first.
   for (const [name, value] of [
