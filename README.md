@@ -7,9 +7,9 @@ A daily puzzle in the spirit of Wordle: read a curve off the graph and guess the
 The mystery curve is one of two types:
 
 - **Polynomial:** one of three forms.
-  - Cubic: a·x³ + b·x + c
-  - Quadratic: a·x² + b·x + c
-  - Linear: a·x + b
+  - Cubic: ax³ + bx + c
+  - Quadratic: ax² + bx + c
+  - Linear: ax + b
 - **Rational:** a/(x − h) + k. These come in two branches that bend along a pair of dashed guide lines. The vertical one sits at x = h and the horizontal one at y = k.
 
 The game does not tell you which type it is. Working that out from the graph is part of the puzzle.
