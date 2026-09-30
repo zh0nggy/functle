@@ -28,6 +28,10 @@ function compare(guess: number, answer: number): CellState {
  * the type is wrong. Its numbers are left ungraded: comparing a quadratic's `b`
  * against a rational's `h` would produce a verdict that looks authoritative and
  * means nothing.
+ *
+ * Lines and parabolas are one type, polynomials, since a line is just a = 0. A
+ * line guessed against a parabola is the right type with "a is too low", which
+ * is how the player learns the answer bends.
  */
 export function gradeGuess(guess: Curve, answer: Curve): Grade {
   const kindCorrect = guess.kind === answer.kind;

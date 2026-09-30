@@ -175,8 +175,33 @@ export function isPlayable(curve: Curve): boolean {
     return countVisiblePoints(curve) >= 2;
   }
 
+  if (curve.a !== 0 && !vertexInView(curve)) return false;
+
   const needed = curve.a === 0 ? 3 : 4;
   return countVisiblePoints(curve) >= needed;
+}
+
+/**
+ * How far inside the frame a parabola's vertex must sit, in graph units.
+ *
+ * On the edge exactly, the clip path slices the turn in half and it reads as
+ * two separate lines running off the top. One unit in leaves the turn whole.
+ */
+const VERTEX_MARGIN = 1;
+
+/**
+ * Whether a parabola's turning point is inside the grid.
+ *
+ * The vertex is the single most readable feature of a parabola. When it falls
+ * outside the frame the player sees two arms that could belong to any number of
+ * curves, and the puzzle stops being about reading the graph.
+ */
+export function vertexInView(curve: Curve): boolean {
+  if (curve.kind !== 'quadratic' || curve.a === 0) return true;
+  const x = -curve.b / (2 * curve.a);
+  const y = evaluate(curve, x);
+  const limit = VIEW_LIMIT - VERTEX_MARGIN;
+  return Math.abs(x) <= limit && Math.abs(y) <= limit;
 }
 
 export function puzzleFor(when: Date = new Date()): Puzzle {

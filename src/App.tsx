@@ -174,13 +174,7 @@ export default function App() {
             of pushing a sentence apart mid-way. */}
         <ul className="rules__lines">
           <li>Guess the function on the graph in 6 tries.</li>
-          <li>
-            It is either <TeX source="ax^{2} + bx + c" /> or{' '}
-            {/* The comma goes inside the TeX so it cannot wrap away from the
-                fraction. */}
-            <TeX source="\dfrac{a}{x - h} + k," /> where the coefficients are
-            from <TeX source="-10" /> to <TeX source="10" />.
-          </li>
+          <li>It is either a polynomial or a rational function.</li>
           <li>Green means a number is right. ↑ or ↓ shows which way to move it.</li>
         </ul>
       </details>

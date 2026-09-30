@@ -10,9 +10,14 @@
 
 import type { Curve, CurveKind } from './types';
 
-/** How the header and rules name each family to the player. */
+/**
+ * How the type box names each family.
+ *
+ * "Polynomial", not "Quadratic": the family includes lines (a = 0), and a box
+ * saying "Quadratic" beside y = x − 4 reads as a bug.
+ */
 export const KIND_LABEL: Record<CurveKind, string> = {
-  quadratic: 'Quadratic',
+  quadratic: 'Polynomial',
   rational: 'Rational',
 };
 

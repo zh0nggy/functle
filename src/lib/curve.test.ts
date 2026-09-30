@@ -4,10 +4,18 @@ import {
   formatCurve,
   latexCurve,
   sameCurve,
+  KIND_LABEL,
   slots,
   speakCurve,
 } from './curve';
 import type { Curve } from './types';
+
+describe('KIND_LABEL', () => {
+  it('calls lines and parabolas polynomials, not quadratics', () => {
+    expect(KIND_LABEL.quadratic).toBe('Polynomial');
+    expect(KIND_LABEL.rational).toBe('Rational');
+  });
+});
 
 const quadratic = (a: number, b: number, c: number): Curve => ({
   kind: 'quadratic',

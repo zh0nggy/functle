@@ -6,6 +6,7 @@ import {
   isPlayable,
   MAX_GUESSES,
   puzzleFor,
+  vertexInView,
   VIEW_LIMIT,
 } from './puzzle';
 
@@ -113,6 +114,10 @@ describe('generated answers are playable', () => {
     }
   });
 
+  it('keeps every parabola turning point inside the grid', () => {
+    for (const answer of ANSWERS) expect(vertexInView(answer)).toBe(true);
+  });
+
   it('rotates through both families over a year', () => {
     expect(ANSWERS.some((c) => c.kind === 'quadratic')).toBe(true);
     expect(ANSWERS.some((c) => c.kind === 'rational')).toBe(true);
@@ -166,6 +171,27 @@ describe('isPlayable', () => {
   it('rejects a rational whose asymptote sits at the edge of the grid', () => {
     expect(isPlayable({ kind: 'rational', a: 3, h: 9, k: 0 })).toBe(false);
     expect(isPlayable({ kind: 'rational', a: 3, h: 0, k: -9 })).toBe(false);
+  });
+});
+
+describe('vertexInView', () => {
+  it('rejects a parabola whose top is clipped by the frame', () => {
+    // Today's original answer: -x^2 - 5x + 4 peaks at (-2.5, 10.25).
+    expect(vertexInView({ kind: 'quadratic', a: -1, b: -5, c: 4 })).toBe(false);
+  });
+
+  it('rejects a vertex sitting right on the edge', () => {
+    // Peaks at exactly (0, 10), which clips the turn in half.
+    expect(vertexInView({ kind: 'quadratic', a: -1, b: 0, c: 10 })).toBe(false);
+  });
+
+  it('accepts a vertex comfortably inside', () => {
+    expect(vertexInView({ kind: 'quadratic', a: 1, b: 2, c: -3 })).toBe(true);
+  });
+
+  it('has nothing to check on lines and rationals', () => {
+    expect(vertexInView({ kind: 'quadratic', a: 0, b: 3, c: 20 })).toBe(true);
+    expect(vertexInView({ kind: 'rational', a: 3, h: 2, k: 1 })).toBe(true);
   });
 });
 

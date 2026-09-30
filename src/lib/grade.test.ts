@@ -112,6 +112,15 @@ describe('gradeGuess', () => {
   it('confirms a right type', () => {
     expect(gradeGuess(rational(1, 0, 0), rational(3, 2, 1)).kindCorrect).toBe(true);
   });
+
+  it('treats lines and parabolas as one type, polynomials', () => {
+    const grade = gradeGuess(quadratic(0, 1, -4), quadratic(2, -3, 5));
+    expect(grade.kindCorrect).toBe(true);
+    // a = 0 against a = 2 reads "a is too low", which is how the player learns
+    // the answer bends.
+    expect(grade.cells.map((c) => c.state)).toEqual(['low', 'high', 'low']);
+    expect(gradeGuess(quadratic(1, 1, -4), quadratic(0, 1, -4)).kindCorrect).toBe(true);
+  });
 });
 
 describe('describeCell', () => {
