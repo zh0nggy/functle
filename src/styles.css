@@ -270,18 +270,47 @@ body {
 
 /* No `color` here: it is set inline per row from the palette, and a declaration
    at this level would be the thing an inline style has to fight. */
+/* No overflow clipping: a typeset fraction is taller than a line of text, and
+   clipping would slice off its numerator and denominator. */
 .guess__expr {
-  font-family: var(--font-math);
   font-size: 1rem;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+}
+
+/* KaTeX sets its own size at 1.21em; pulled back so rows stay compact. */
+.tex .katex {
+  font-size: 1.1em;
 }
 
 .guess__cells {
   display: flex;
   gap: calc(var(--step) * 0.75);
   flex: 0 0 auto;
+}
+
+/* Type verdict. Pushed right by the auto margin so it sits in the gap just
+   before the parameter cells. Red here, unlike the orange of a miss cell:
+   a wrong type is not "move this number", it is "wrong shape entirely". */
+.guess__kind {
+  margin-left: auto;
+  flex: 0 0 auto;
+  padding: 0.15em 0.5em;
+  border: 1px solid;
+  border-radius: var(--radius);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.guess__kind--correct {
+  background: #e4f2eb;
+  border-color: var(--hit);
+  color: var(--hit);
+}
+
+.guess__kind--wrong {
+  background: #fbe4e4;
+  border-color: #b3261e;
+  color: #b3261e;
 }
 
 /* Each cell states three things at once: which coefficient, what you guessed,
@@ -327,6 +356,13 @@ body {
   color: var(--miss);
 }
 
+/* Wrong type, so no verdict: neutral grey, not a miss colour. */
+.cell--unknown {
+  background: var(--paper);
+  border-color: var(--grid);
+  color: var(--ink-soft);
+}
+
 .tally {
   margin: calc(var(--step) * 2) 0 0;
   font-size: 0.8125rem;
@@ -354,8 +390,8 @@ body {
    on the page after the title. */
 .outcome__answer {
   margin: calc(var(--step) * 0.5) 0 calc(var(--step) * 2);
-  font-family: var(--font-math);
-  font-size: 1.5rem;
+  font-family: var(--font-text);
+  font-size: 1.25rem;
   color: var(--plot);
 }
 

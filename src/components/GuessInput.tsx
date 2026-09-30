@@ -8,37 +8,21 @@
 
 import { useState, type FormEvent } from 'react';
 import { guessStyle } from '../lib/palette';
-import { formatCurve, KIND_EXAMPLE } from '../lib/curve';
+import { KIND_EXAMPLE, latexCurve } from '../lib/curve';
 import { parseCurve } from '../lib/parse';
-import type { Curve, CurveKind } from '../lib/types';
+import type { Curve } from '../lib/types';
+import TeX from './TeX';
 
 interface GuessInputProps {
   disabled: boolean;
-  /** The family today's answer belongs to. Guesses must match it. */
-  kind: CurveKind;
   /** Which guess slot this will become, so the preview can show its colour. */
   nextIndex: number;
   /** Returns null when accepted, or a reason to show the player when not. */
   onGuess: (raw: string, curve: Curve) => string | null;
 }
 
-/**
- * Why a guess of the wrong family cannot be accepted.
- *
- * It parses fine, so the parser has nothing to complain about — but a
- * quadratic's three numbers are not a rational's, and grading one against the
- * other would hand back a verdict that looks authoritative and means nothing.
- * Caught here rather than on submit so the player never spends a guess on it.
- */
-function mismatchMessage(expected: CurveKind): string {
-  return expected === 'rational'
-    ? `Today's curve is a rational function — try the shape ${KIND_EXAMPLE.rational}.`
-    : `Today's curve is a polynomial — try the shape ${KIND_EXAMPLE.quadratic}.`;
-}
-
 export default function GuessInput({
   disabled,
-  kind,
   nextIndex,
   onGuess,
 }: GuessInputProps) {
@@ -49,15 +33,9 @@ export default function GuessInput({
   const result = trimmed === '' ? null : parseCurve(trimmed);
 
   const parsed = result && result.ok ? result.curve : null;
-  const mismatched = parsed !== null && parsed.kind !== kind;
-
-  const problem =
-    (result && !result.ok ? result.error : null) ??
-    (mismatched ? mismatchMessage(kind) : null) ??
-    rejection;
-
-  const preview = parsed && !mismatched ? formatCurve(parsed) : null;
-  const submittable = parsed !== null && !mismatched;
+  const problem = (result && !result.ok ? result.error : null) ?? rejection;
+  const preview = parsed ? latexCurve(parsed) : null;
+  const submittable = parsed !== null;
 
   // The colour this guess will own once submitted. Same index the history row
   // and the graph will use, so all three agree.
@@ -65,7 +43,7 @@ export default function GuessInput({
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    if (disabled || !parsed || mismatched) return;
+    if (disabled || !parsed) return;
 
     const reason = onGuess(trimmed, parsed);
     setRejection(reason);
@@ -89,7 +67,7 @@ export default function GuessInput({
             setRejection(null);
           }}
           disabled={disabled}
-          placeholder={KIND_EXAMPLE[kind]}
+          placeholder={KIND_EXAMPLE.quadratic}
           autoComplete="off"
           autoCapitalize="off"
           spellCheck={false}
@@ -122,16 +100,14 @@ export default function GuessInput({
                 the guess is spent rather than after. */}
             Reads as{' '}
             <span className="entry__preview" style={{ color: upcoming.color }}>
-              {preview}
+              <TeX source={preview} />
             </span>
             {/* The colour has to be said somewhere for a screen reader, or the
                 graph reference means nothing. */}
             <span className="sr-only">, will be drawn in {upcoming.name}</span>
           </>
-        ) : kind === 'rational' ? (
-          'Write it as a fraction, like 3/(x-2)+1.'
         ) : (
-          'Any order works, and you can write x² or x^2.'
+          `Try ${KIND_EXAMPLE.quadratic} or ${KIND_EXAMPLE.rational}.`
         )}
       </p>
     </form>

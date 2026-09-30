@@ -6,31 +6,32 @@
  * survives being read by someone who cannot distinguish red from green.
  */
 
-import { KIND_LABEL } from './curve';
 import { MAX_GUESSES } from './puzzle';
-import type { CellState, CurveKind, Guess } from './types';
+import type { CellState, Guess } from './types';
 
 const GLYPH: Record<CellState, string> = {
   correct: '🟩',
   high: '🔻', // guess was above the answer, so come down
   low: '🔺',
+  unknown: '⬜',
 };
 
 export function buildShareText(
   puzzleNumber: number,
-  kind: CurveKind,
   guesses: Guess[],
   won: boolean
 ): string {
   const score = won ? `${guesses.length}/${MAX_GUESSES}` : `X/${MAX_GUESSES}`;
 
-  // The family is named because the rotation now has two, and a bare 4/6 does
-  // not say which kind of curve it took four guesses to pin down. It spoils
-  // nothing: everyone on this puzzle number already has the same curve.
-  const title = `Functle #${puzzleNumber} ${KIND_LABEL[kind]} ${score}`;
+  // The type is not named: working it out is part of the puzzle now, and the
+  // share goes to people who may not have played yet. Each row leads with a
+  // type square instead.
+  const title = `Functle #${puzzleNumber} ${score}`;
 
-  const rows = guesses.map((g) =>
-    g.grade.cells.map((cell) => GLYPH[cell.state]).join('')
+  const rows = guesses.map(
+    (g) =>
+      (g.grade.kindCorrect ? '🟩' : '🟥') +
+      g.grade.cells.map((cell) => GLYPH[cell.state]).join('')
   );
 
   return [title, ...rows].join('\n');

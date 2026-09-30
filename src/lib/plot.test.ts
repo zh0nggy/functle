@@ -101,13 +101,13 @@ describe('latticePoints', () => {
 });
 
 describe('describeCurve', () => {
-  it('states both asymptotes for a rational', () => {
+  it('describes the guide lines for a rational without naming the type', () => {
     const text = describeCurve(rational(6, 3, 5));
-    expect(text).toMatch(/vertical asymptote at x equals 3/);
-    expect(text).toMatch(/horizontal asymptote at y equals 5/);
+    expect(text).toMatch(/x equals 3 and y equals 5/);
+    expect(text).not.toMatch(/rational/i);
   });
 
-  it('says nothing about asymptotes for a quadratic', () => {
-    expect(describeCurve(quadratic(1, 0, 0))).not.toMatch(/asymptote/);
+  it('says nothing about guide lines for a quadratic', () => {
+    expect(describeCurve(quadratic(1, 0, 0))).not.toMatch(/guide|quadratic/i);
   });
 });

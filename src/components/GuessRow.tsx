@@ -14,13 +14,15 @@
 
 import { describeCell } from '../lib/grade';
 import { guessStyle } from '../lib/palette';
-import { formatCurve, speakCurve } from '../lib/curve';
+import { KIND_LABEL, latexCurve, speakCurve } from '../lib/curve';
 import type { CellState, Guess } from '../lib/types';
+import TeX from './TeX';
 
 const ARROW: Record<CellState, string> = {
   correct: '✓',
   high: '↓', // aim lower
   low: '↑',
+  unknown: '–',
 };
 
 function Cell({
@@ -83,16 +85,30 @@ export default function GuessRow({
           aria-label={`Show guess ${index + 1} on the graph`}
         />
 
-        {/* The visible text uses proper minus signs and a superscript; the label
-            spells the same expression out, since "−x²" read literally is noise.
-            The colour name goes in the label too — it is the only way the
-            row-to-curve link survives for someone not seeing the colour. */}
-        <span
-          className="guess__expr"
-          style={{ color: style.color }}
-          aria-label={`${speakCurve(curve)}, drawn in ${style.name}`}
-        >
-          {formatCurve(curve)}
+        {/* The visible expression is typeset; the hidden text spells the same
+            expression out, since a fraction read literally is noise. The
+            colour name goes in too — it is the only way the row-to-curve link
+            survives for someone not seeing the colour. */}
+        <span className="guess__expr" style={{ color: style.color }}>
+          <span aria-hidden="true">
+            <TeX source={latexCurve(curve)} />
+          </span>
+          <span className="sr-only">
+            {speakCurve(curve)}, drawn in {style.name}
+          </span>
+        </span>
+      </div>
+
+      {/* The type verdict fills the gap between expression and cells. It
+          carries a glyph as well as a colour, for the same reason the cells
+          carry arrows. */}
+      <div
+        className={`guess__kind ${grade.kindCorrect ? 'guess__kind--correct' : 'guess__kind--wrong'}`}
+      >
+        <span aria-hidden="true">{grade.kindCorrect ? '✓' : '✗'}</span>{' '}
+        {KIND_LABEL[curve.kind]}
+        <span className="sr-only">
+          {grade.kindCorrect ? ' is the right type' : ' is the wrong type'}
         </span>
       </div>
 

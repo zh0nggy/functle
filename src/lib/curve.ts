@@ -137,6 +137,28 @@ export function formatCurve(curve: Curve): string {
 }
 
 /**
+ * TeX source for the curve, for typeset display.
+ *
+ * Built from the parsed numbers rather than from what the player typed, so the
+ * preview shows how the game read the guess, not a prettier copy of the typo.
+ */
+export function latexCurve(curve: Curve): string {
+  // Same text as formatCurve, which has already settled the sign and implied-1
+  // rules; only the notation differs.
+  if (curve.kind === 'quadratic') {
+    return formatCurve(curve).replace(/x²/g, 'x^{2}').replace(/−/g, '-');
+  }
+
+  const { a, h, k } = curve;
+  const denominator = h === 0 ? 'x' : `x ${h > 0 ? '-' : '+'} ${Math.abs(h)}`;
+  // \dfrac, not \frac: inline \frac shrinks both halves to script size, which
+  // at body text size leaves the numbers too small to read.
+  let out = `y = \\dfrac{${a}}{${denominator}}`;
+  if (k !== 0) out += ` ${k > 0 ? '+' : '-'} ${Math.abs(k)}`;
+  return out;
+}
+
+/**
  * Plain-text form, for the aria-label on a result row.
  *
  * "−x²" read literally by a screen reader is noise, and "3/(x − 2)" is worse:

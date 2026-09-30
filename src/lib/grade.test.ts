@@ -100,10 +100,17 @@ describe('gradeGuess', () => {
     expect(cells.map((c) => c.value)).toEqual([-4, 5, -6]);
   });
 
-  it('refuses to grade across families', () => {
+  it('flags a wrong type and leaves its numbers ungraded', () => {
     // Comparing a quadratic's b against a rational's h would produce a verdict
     // that looks authoritative and means nothing.
-    expect(() => gradeGuess(quadratic(1, 2, 3), rational(1, 2, 3))).toThrow();
+    const grade = gradeGuess(quadratic(1, 2, 3), rational(1, 2, 3));
+    expect(grade.kindCorrect).toBe(false);
+    expect(grade.won).toBe(false);
+    expect(grade.cells.map((c) => c.state)).toEqual(['unknown', 'unknown', 'unknown']);
+  });
+
+  it('confirms a right type', () => {
+    expect(gradeGuess(rational(1, 0, 0), rational(3, 2, 1)).kindCorrect).toBe(true);
   });
 });
 
@@ -113,6 +120,7 @@ describe('describeCell', () => {
     expect(describeCell('b', 'high')).toBe('b is too high');
     expect(describeCell('c', 'low')).toBe('c is too low');
     expect(describeCell('h', 'high')).toBe('h is too high');
+    expect(describeCell('k', 'unknown')).toBe('k is not graded, wrong type');
   });
 });
 
@@ -124,31 +132,28 @@ describe('buildShareText', () => {
 
   it('reports the score and one row per guess on a win', () => {
     const guesses = [guess(quadratic(1, 0, 0)), guess(ANSWER)];
-    const text = buildShareText(7, 'quadratic', guesses, true);
+    const text = buildShareText(7, guesses, true);
     const lines = text.split('\n');
 
-    expect(lines[0]).toBe('Functle #7 Quadratic 2/6');
+    expect(lines[0]).toBe('Functle #7 2/6');
     expect(lines).toHaveLength(3);
-    expect(lines[2]).toBe('🟩🟩🟩');
+    expect(lines[2]).toBe('🟩🟩🟩🟩');
   });
 
   it('marks a loss with an X rather than a guess count', () => {
     const guesses = [guess(quadratic(1, 0, 0))];
-    expect(buildShareText(7, 'quadratic', guesses, false).split('\n')[0]).toBe(
-      'Functle #7 Quadratic X/6'
-    );
+    expect(buildShareText(7, guesses, false).split('\n')[0]).toBe('Functle #7 X/6');
   });
 
-  it('names the family, since the rotation has two', () => {
+  it('does not name the type, and marks a wrong-type row red', () => {
     const answer = rational(3, 2, 1);
-    const guesses = [guess(rational(3, 2, 1), answer)];
-    expect(buildShareText(9, 'rational', guesses, true).split('\n')[0]).toBe(
-      'Functle #9 Rational 1/6'
-    );
+    const text = buildShareText(9, [guess(quadratic(1, 0, 0), answer)], false);
+    expect(text).not.toMatch(/quadratic|rational/i);
+    expect(text.split('\n')[1]).toBe('🟥⬜⬜⬜');
   });
 
   it('leaks no numbers, only directions', () => {
-    const text = buildShareText(7, 'quadratic', [guess(quadratic(9, 8, 7))], false);
+    const text = buildShareText(7, [guess(quadratic(9, 8, 7))], false);
     // The header has digits; the grid rows must not, or the share spoils it.
     for (const row of text.split('\n').slice(1)) {
       expect(row).not.toMatch(/\d/);

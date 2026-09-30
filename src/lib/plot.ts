@@ -122,16 +122,18 @@ export function latticePoints(curve: Curve): string {
  * legible thing on the grid for a sighted player — the curve visibly climbs
  * along them — and lattice points alone are far scarcer than for a parabola.
  * Leaving them out would make the sighted and unsighted versions of the puzzle
- * meaningfully different games.
+ * meaningfully different games. The type is not named, since the game no longer
+ * names it to sighted players either; the dashed guides are what a sighted
+ * player sees, so they are what gets described.
  */
 export function describeCurve(curve: Curve): string {
   const window = `plotted on a grid from minus ${VIEW_LIMIT} to ${VIEW_LIMIT}`;
 
   if (curve.kind === 'rational') {
     return (
-      `Today's mystery function, a rational curve in two branches, ${window}. ` +
-      `It has a vertical asymptote at x equals ${curve.h} and a horizontal ` +
-      `asymptote at y equals ${curve.k}. ${latticePoints(curve)}`
+      `Today's mystery function, ${window}. The curve comes in two pieces, ` +
+      `with dashed guide lines at x equals ${curve.h} and y equals ${curve.k}. ` +
+      latticePoints(curve)
     );
   }
 

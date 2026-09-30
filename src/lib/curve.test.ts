@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { evaluate, formatCurve, sameCurve, slots, speakCurve } from './curve';
+import {
+  evaluate,
+  formatCurve,
+  latexCurve,
+  sameCurve,
+  slots,
+  speakCurve,
+} from './curve';
 import type { Curve } from './types';
 
 const quadratic = (a: number, b: number, c: number): Curve => ({
@@ -58,6 +65,19 @@ describe('sameCurve', () => {
   it('never matches across families, even with identical numbers', () => {
     // Both hold 1, 2, 3, and they are completely different curves.
     expect(sameCurve(quadratic(1, 2, 3), rational(1, 2, 3))).toBe(false);
+  });
+});
+
+describe('latexCurve', () => {
+  it('writes a quadratic with a TeX exponent and ASCII minus', () => {
+    expect(latexCurve(quadratic(2, -3, 5))).toBe('y = 2x^{2} - 3x + 5');
+    expect(latexCurve(quadratic(-1, 0, 0))).toBe('y = -x^{2}');
+  });
+
+  it('writes a rational as a fraction, flipping the sign of h', () => {
+    expect(latexCurve(rational(3, 2, 1))).toBe('y = \\dfrac{3}{x - 2} + 1');
+    expect(latexCurve(rational(-5, -4, -5))).toBe('y = \\dfrac{-5}{x + 4} - 5');
+    expect(latexCurve(rational(1, 0, 0))).toBe('y = \\dfrac{1}{x}');
   });
 });
 

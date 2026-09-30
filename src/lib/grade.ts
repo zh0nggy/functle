@@ -24,26 +24,28 @@ function compare(guess: number, answer: number): CellState {
 }
 
 /**
- * Both curves must be the same family. The caller guarantees this: a guess of
- * the wrong family is turned away before it ever becomes a guess, because
- * comparing a quadratic's `b` against a rational's `h` would produce a verdict
- * that looks authoritative and means nothing.
+ * A guess of the wrong type still counts, and the first thing it learns is that
+ * the type is wrong. Its numbers are left ungraded: comparing a quadratic's `b`
+ * against a rational's `h` would produce a verdict that looks authoritative and
+ * means nothing.
  */
 export function gradeGuess(guess: Curve, answer: Curve): Grade {
-  if (guess.kind !== answer.kind) {
-    throw new Error('Cannot grade a guess against a different family of curve.');
-  }
-
-  const guessSlots = slots(guess);
+  const kindCorrect = guess.kind === answer.kind;
   const answerSlots = slots(answer);
 
-  const cells = guessSlots.map((slot, i) => ({
+  const cells = slots(guess).map((slot, i) => ({
     name: slot.name,
     value: slot.value,
-    state: compare(slot.value, answerSlots[i].value),
+    state: kindCorrect
+      ? compare(slot.value, answerSlots[i].value)
+      : ('unknown' as const),
   }));
 
-  return { cells, won: cells.every((cell) => cell.state === 'correct') };
+  return {
+    kindCorrect,
+    cells,
+    won: kindCorrect && cells.every((cell) => cell.state === 'correct'),
+  };
 }
 
 /**
@@ -55,5 +57,6 @@ export function gradeGuess(guess: Curve, answer: Curve): Grade {
  */
 export function describeCell(name: string, state: CellState): string {
   if (state === 'correct') return `${name} is correct`;
+  if (state === 'unknown') return `${name} is not graded, wrong type`;
   return state === 'high' ? `${name} is too high` : `${name} is too low`;
 }

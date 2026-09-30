@@ -32,8 +32,12 @@ export interface Rational {
 
 export type Curve = Quadratic | Rational;
 
-/** Per-parameter verdict. 'high' means the guess was above the answer. */
-export type CellState = 'correct' | 'high' | 'low';
+/**
+ * Per-parameter verdict. 'high' means the guess was above the answer.
+ * 'unknown' means the guess was the wrong type of function, so its numbers
+ * cannot be compared with the answer's.
+ */
+export type CellState = 'correct' | 'high' | 'low' | 'unknown';
 
 /**
  * One graded parameter. The name travels with the value because the two
@@ -47,6 +51,8 @@ export interface GradeCell {
 }
 
 export interface Grade {
+  /** Whether the guess is the same type of function as the answer. */
+  kindCorrect: boolean;
   /** Always three, in display order. */
   cells: GradeCell[];
   /** True only when every parameter is correct. */

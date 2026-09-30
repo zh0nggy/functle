@@ -7,7 +7,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Graph from './components/Graph';
 import GuessInput from './components/GuessInput';
 import GuessRow from './components/GuessRow';
-import { formatCurve, KIND_LABEL, sameCurve } from './lib/curve';
+import TeX from './components/TeX';
+import { formatCurve, latexCurve, sameCurve } from './lib/curve';
 import { gradeGuess } from './lib/grade';
 import { MAX_GUESSES, puzzleFor } from './lib/puzzle';
 import { buildShareText, copyToClipboard } from './lib/share';
@@ -17,9 +18,9 @@ import type { Curve, GameStatus, Guess } from './lib/types';
  * Bumped if the saved shape ever changes, so old saves are discarded not
  * crashed. Version 2 added the curve family: a version 1 guess stored bare
  * coefficients and a grade of three named fields, neither of which the current
- * history row can render.
+ * history row can render. Version 3 added the type verdict to each grade.
  */
-const SAVE_VERSION = 2;
+const SAVE_VERSION = 3;
 
 interface SavedDay {
   version: number;
@@ -54,7 +55,6 @@ export default function App() {
   // One puzzle per mount. If someone leaves the tab open past midnight they
   // keep yesterday's puzzle until reload, which is the same as Wordle.
   const puzzle = useMemo(() => puzzleFor(), []);
-  const kind = puzzle.answer.kind;
 
   const [guesses, setGuesses] = useState<Guess[]>(() => loadDay(puzzle.dateKey));
   const [copied, setCopied] = useState(false);
@@ -91,12 +91,7 @@ export default function App() {
   }
 
   async function handleShare() {
-    const text = buildShareText(
-      puzzle.number,
-      kind,
-      guesses,
-      status === 'won'
-    );
+    const text = buildShareText(puzzle.number, guesses, status === 'won');
     const ok = await copyToClipboard(text);
     setCopied(ok);
     if (!ok) window.prompt('Copy your result:', text);
@@ -108,12 +103,10 @@ export default function App() {
     <main className="page">
       <header className="masthead">
         <h1 className="masthead__title">Functle</h1>
-        {/* The family is named up front rather than left to be inferred from the
-            graph. It is not a hint — the shape is plain on sight — and knowing
-            it tells the player which notation the box expects. */}
+        {/* The type is deliberately not named: working it out from the graph
+            is part of the puzzle, and each guess row reports it. */}
         <p className="masthead__sub">
-          Puzzle {puzzle.number} · {KIND_LABEL[kind]} · Read the curve, name the
-          function
+          Puzzle {puzzle.number} · Read the curve, name the function
         </p>
       </header>
 
@@ -125,7 +118,6 @@ export default function App() {
       {status === 'playing' ? (
         <GuessInput
           disabled={false}
-          kind={kind}
           nextIndex={guesses.length}
           onGuess={handleGuess}
         />
@@ -136,7 +128,9 @@ export default function App() {
               ? `Solved in ${guesses.length}.`
               : 'Out of guesses.'}
           </p>
-          <p className="outcome__answer">{formatCurve(puzzle.answer)}</p>
+          <p className="outcome__answer">
+            <TeX source={latexCurve(puzzle.answer)} />
+          </p>
           <button className="outcome__share" type="button" onClick={handleShare}>
             {copied ? 'Copied' : 'Copy result'}
           </button>
