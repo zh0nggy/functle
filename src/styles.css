@@ -178,11 +178,23 @@ body {
   gap: var(--step);
 }
 
+/* Positioning context for the typeset overlay. Takes the input's place in the
+   row, so the input just fills it. */
+.entry__box {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+}
+
 .entry__field {
   flex: 1 1 auto;
   min-width: 0;
+  /* Tall enough to hold a typeset fraction when the overlay is showing. */
+  min-height: 3.25rem;
   padding: calc(var(--step) * 1.25) calc(var(--step) * 1.5);
   font-family: var(--font-math);
+  /* 16px or more stops iOS Safari zooming the page when the box is tapped. */
   font-size: 1.125rem;
   color: var(--ink);
   background: var(--stock);
@@ -190,32 +202,36 @@ body {
   border-radius: var(--radius);
 }
 
-/* MathLive field. It renders its own shadow DOM, so only the outer box and a
-   few exposed custom properties can be styled from here. */
-math-field.entry__field {
-  display: block;
-  font-family: var(--font-text);
-  font-size: 1.25rem;
-  --caret-color: var(--plot);
-  --selection-background-color: #d6e6ec;
-  --placeholder-color: #9db3bc;
-  --placeholder-opacity: 1;
-}
 
-math-field.entry__field:focus-within {
-  outline: 2px solid var(--plot);
-  outline-offset: 2px;
-}
-
-/* The field's own menu and keyboard toggles are disabled in code; hide the
-   buttons too so they do not suggest otherwise. */
-math-field.entry__field::part(menu-toggle),
-math-field.entry__field::part(virtual-keyboard-toggle) {
-  display: none;
+/* While typeset, the raw text is made invisible but left in place: the input
+   keeps focus and its caret, so the next keystroke edits it directly. */
+.entry__field--typeset {
+  color: transparent;
+  caret-color: transparent;
 }
 
 .entry__field[aria-invalid='true'] {
   border-color: var(--miss);
+}
+
+/* Sits exactly over the input's text area. pointer-events: none so a tap goes
+   through to the input underneath and the keyboard stays up. */
+.entry__typeset {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 calc(var(--step) * 1.5);
+  font-size: 1.125rem;
+  color: var(--ink);
+  pointer-events: none;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* Same faded colour a native placeholder had. */
+.entry__typeset--placeholder {
+  color: #9db3bc;
 }
 
 .entry__submit {
@@ -238,10 +254,9 @@ math-field.entry__field::part(virtual-keyboard-toggle) {
   cursor: not-allowed;
 }
 
-/* Reserves two lines so the layout does not jump as the hint swaps for an
-   error and back. */
+/* No reserved height: with the hint gone the line is usually empty, and an
+   empty reserved block just reads as a gap. */
 .entry__note {
-  min-height: 2.5em;
   margin: var(--step) 0 0;
   font-size: 0.8125rem;
   color: var(--ink-soft);
@@ -300,6 +315,12 @@ math-field.entry__field::part(virtual-keyboard-toggle) {
 /* KaTeX sets its own size at 1.21em; pulled back so rows stay compact. */
 .tex .katex {
   font-size: 1.1em;
+}
+
+/* A formula is one unit: KaTeX would otherwise let a line break fall after an
+   operator, leaving "+" on one line and "k" on the next. */
+.tex {
+  white-space: nowrap;
 }
 
 .guess__cells {
@@ -436,7 +457,7 @@ math-field.entry__field::part(virtual-keyboard-toggle) {
 /* ---- Rules ------------------------------------------------------------- */
 
 .rules {
-  margin-top: calc(var(--step) * 5);
+  margin-top: calc(var(--step) * 2);
   padding-top: calc(var(--step) * 2);
   border-top: 1px solid var(--grid);
   font-size: 0.875rem;
@@ -449,8 +470,15 @@ math-field.entry__field::part(virtual-keyboard-toggle) {
   color: var(--ink);
 }
 
-.rules p {
-  max-width: 60ch;
+/* Plain lines rather than a bulleted list: a list, so a screen reader can say
+   how many lines there are, but styled as one short paragraph per line. */
+.rules__lines {
+  list-style: none;
+  margin: var(--step) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--step) * 0.75);
 }
 
 /* On narrow screens the expression and its cells stop fitting side by side. */

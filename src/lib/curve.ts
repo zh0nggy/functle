@@ -141,19 +141,28 @@ export function formatCurve(curve: Curve): string {
  *
  * Built from the parsed numbers rather than from what the player typed, so the
  * preview shows how the game read the guess, not a prettier copy of the typo.
+ *
+ * `bare` drops the leading "y =", for the guess box, where the player types
+ * only the right-hand side.
  */
-export function latexCurve(curve: Curve): string {
+export function latexCurve(curve: Curve, { bare = false } = {}): string {
+  const lead = bare ? '' : 'y = ';
+
   // Same text as formatCurve, which has already settled the sign and implied-1
   // rules; only the notation differs.
   if (curve.kind === 'quadratic') {
-    return formatCurve(curve).replace(/x²/g, 'x^{2}').replace(/−/g, '-');
+    const body = formatCurve(curve)
+      .replace(/^y = /, '')
+      .replace(/x²/g, 'x^{2}')
+      .replace(/−/g, '-');
+    return lead + body;
   }
 
   const { a, h, k } = curve;
   const denominator = h === 0 ? 'x' : `x ${h > 0 ? '-' : '+'} ${Math.abs(h)}`;
   // \dfrac, not \frac: inline \frac shrinks both halves to script size, which
   // at body text size leaves the numbers too small to read.
-  let out = `y = \\dfrac{${a}}{${denominator}}`;
+  let out = `${lead}\\dfrac{${a}}{${denominator}}`;
   if (k !== 0) out += ` ${k > 0 ? '+' : '-'} ${Math.abs(k)}`;
   return out;
 }

@@ -19,7 +19,8 @@ import type { CellState, Guess } from '../lib/types';
 import TeX from './TeX';
 
 const ARROW: Record<CellState, string> = {
-  correct: '✓',
+  // Green alone marks a right number; the sr-only text below says it too.
+  correct: '',
   high: '↓', // aim lower
   low: '↑',
   unknown: '–',
@@ -44,9 +45,11 @@ function Cell({
       <span className="cell__value">{value}</span>
       {/* The arrow is not decoration: it carries the same information as the
           colour, for anyone who cannot separate the two hues. */}
-      <span className="cell__arrow" aria-hidden="true">
-        {ARROW[state]}
-      </span>
+      {ARROW[state] && (
+        <span className="cell__arrow" aria-hidden="true">
+          {ARROW[state]}
+        </span>
+      )}
       <span className="sr-only">{describeCell(name, state)}</span>
     </div>
   );

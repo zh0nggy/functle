@@ -21,11 +21,7 @@ Each guess is drawn on the graph as a dashed line in its own colour. Untick the 
 
 ## Typing a guess
 
-The guess box types maths as you go:
-
-- Press `^` for a power, then → to come back down. `2x^2` → `-3x+5` gives 2x² − 3x + 5.
-- Press `/` for a fraction, type the bottom, then → to leave it. `3/x-2` → `+1` gives 3/(x − 2) + 1.
-- Press Enter to submit.
+Type the function as plain text, using `^` for a power and `/` for a fraction: `2x^2-3x+5` or `3/(x-2)+1`. Press space to see it formatted as maths, and keep typing to go back to editing the text. Press Enter to submit.
 
 For quadratics the order of terms does not matter, so 5 − 3x + 2x² works as well as 2x² − 3x + 5.
 
@@ -52,10 +48,10 @@ Then open http://localhost:5173.
 
 ## How it is built
 
-React 19, TypeScript and Vite, tested with Vitest. Formulas are rendered with [KaTeX](https://katex.org), and the guess box is a [MathLive](https://mathlive.io) math field.
+React 19, TypeScript and Vite, tested with Vitest. Formulas are rendered with [KaTeX](https://katex.org).
 
 - `src/lib/puzzle.ts` picks the day's curve from a hash of the date, so every player gets the same one without a server.
-- `src/lib/parse.ts` reads a typed guess into a curve. `src/lib/latex.ts` converts the math field's LaTeX into that same plain text first.
+- `src/lib/parse.ts` reads a typed guess into a curve.
 - `src/lib/grade.ts` grades a guess against the answer.
 - `src/lib/plot.ts` turns a curve into SVG paths, splitting rational curves at the asymptote so no line is drawn across it.
 - `src/components/` holds the graph, the guess box and the guess rows.

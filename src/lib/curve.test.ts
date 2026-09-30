@@ -79,6 +79,11 @@ describe('latexCurve', () => {
     expect(latexCurve(rational(-5, -4, -5))).toBe('y = \\dfrac{-5}{x + 4} - 5');
     expect(latexCurve(rational(1, 0, 0))).toBe('y = \\dfrac{1}{x}');
   });
+
+  it('drops the "y =" when asked for the bare expression', () => {
+    expect(latexCurve(quadratic(1, 0, 2), { bare: true })).toBe('x^{2} + 2');
+    expect(latexCurve(rational(3, 2, 0), { bare: true })).toBe('\\dfrac{3}{x - 2}');
+  });
 });
 
 describe('formatCurve', () => {

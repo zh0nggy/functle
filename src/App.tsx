@@ -106,7 +106,7 @@ export default function App() {
         {/* The type is deliberately not named: working it out from the graph
             is part of the puzzle, and each guess row reports it. */}
         <p className="masthead__sub">
-          Puzzle {puzzle.number} · Read the curve, name the function
+          Puzzle {puzzle.number} · Read the curve, guess the function
         </p>
       </header>
 
@@ -170,13 +170,19 @@ export default function App() {
 
       <details className="rules">
         <summary>How it works</summary>
-        <p>
-          Guess the function on the graph in 6 tries. It is either a·x² + b·x + c
-          or a/(x − h) + k, using whole numbers from −10 to 10.
-        </p>
-        <p>
-          ✓ means a number is right. ↑ or ↓ shows which way to move it.
-        </p>
+        {/* One line each, so the tall fraction gets a line to itself instead
+            of pushing a sentence apart mid-way. */}
+        <ul className="rules__lines">
+          <li>Guess the function on the graph in 6 tries.</li>
+          <li>
+            It is either <TeX source="ax^{2} + bx + c" /> or{' '}
+            {/* The comma goes inside the TeX so it cannot wrap away from the
+                fraction. */}
+            <TeX source="\dfrac{a}{x - h} + k," /> where the coefficients are
+            from <TeX source="-10" /> to <TeX source="10" />.
+          </li>
+          <li>Green means a number is right. ↑ or ↓ shows which way to move it.</li>
+        </ul>
       </details>
     </main>
   );
