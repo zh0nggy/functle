@@ -190,8 +190,28 @@ body {
   border-radius: var(--radius);
 }
 
-.entry__field::placeholder {
-  color: #9db3bc;
+/* MathLive field. It renders its own shadow DOM, so only the outer box and a
+   few exposed custom properties can be styled from here. */
+math-field.entry__field {
+  display: block;
+  font-family: var(--font-text);
+  font-size: 1.25rem;
+  --caret-color: var(--plot);
+  --selection-background-color: #d6e6ec;
+  --placeholder-color: #9db3bc;
+  --placeholder-opacity: 1;
+}
+
+math-field.entry__field:focus-within {
+  outline: 2px solid var(--plot);
+  outline-offset: 2px;
+}
+
+/* The field's own menu and keyboard toggles are disabled in code; hide the
+   buttons too so they do not suggest otherwise. */
+math-field.entry__field::part(menu-toggle),
+math-field.entry__field::part(virtual-keyboard-toggle) {
+  display: none;
 }
 
 .entry__field[aria-invalid='true'] {

@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "katex": "0.18.9",
+    "mathlive": "0.110.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },

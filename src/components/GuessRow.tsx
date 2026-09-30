@@ -99,13 +99,12 @@ export default function GuessRow({
         </span>
       </div>
 
-      {/* The type verdict fills the gap between expression and cells. It
-          carries a glyph as well as a colour, for the same reason the cells
-          carry arrows. */}
+      {/* The type verdict fills the gap between expression and cells. Colour
+          only, by choice; the sr-only text carries the verdict for screen
+          readers. */}
       <div
         className={`guess__kind ${grade.kindCorrect ? 'guess__kind--correct' : 'guess__kind--wrong'}`}
       >
-        <span aria-hidden="true">{grade.kindCorrect ? '✓' : '✗'}</span>{' '}
         {KIND_LABEL[curve.kind]}
         <span className="sr-only">
           {grade.kindCorrect ? ' is the right type' : ' is the wrong type'}
